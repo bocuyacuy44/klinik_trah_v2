@@ -18,177 +18,62 @@
   animation: modal-enter 0.2s ease-out;
 }
 
-/* Custom styles for react-big-calendar */
-.rbc-calendar {
-  font-family: inherit;
+/* Custom calendar styles */
+.calendar-day-cell {
+  transition: all 0.2s ease;
 }
 
-.rbc-toolbar {
-  padding: 10px 0;
-  margin-bottom: 10px;
-}
-
-.rbc-toolbar button {
+.calendar-day-cell:hover {
   background-color: #f3f4f6;
-  border: 1px solid #d1d5db;
-  color: #374151;
-  padding: 6px 12px;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  transition: all 0.2s;
 }
 
-.rbc-toolbar button:hover {
-  background-color: #e5e7eb;
-  border-color: #9ca3af;
-}
-
-.rbc-toolbar button.rbc-active {
-  background-color: #3b82f6;
-  color: white;
+.calendar-day-today {
+  background-color: #dbeafe;
   border-color: #3b82f6;
 }
 
-.rbc-toolbar button.rbc-active:hover {
-  background-color: #2563eb;
-}
-
-.rbc-header {
-  padding: 8px;
-  font-weight: 600;
-  background-color: #f9fafb;
-  border-bottom: 1px solid #e5e7eb;
-  color: #374151;
-  text-align: center;
-}
-
-.rbc-month-view {
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.rbc-date-cell {
-  padding: 8px;
-  text-align: right;
-  border-right: 1px solid #f3f4f6;
-  border-bottom: 1px solid #f3f4f6;
-}
-
-.rbc-date-cell.rbc-today {
-  background-color: #fef3c7;
-  font-weight: 600;
-}
-
-.rbc-event {
-  border-radius: 6px !important;
-  border: none !important;
-  font-size: 11px !important;
-  padding: 3px 6px !important;
-  margin: 1px 0 !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
-  transition: all 0.2s ease !important;
-  min-height: 20px !important;
-}
-
-.rbc-event:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
-  cursor: pointer;
-}
-
-.rbc-event.rbc-selected {
-  box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px #3b82f6 !important;
-}
-
-.rbc-show-more {
-  background-color: #e0e7ff;
-  color: #3730a3;
-  font-size: 11px;
-  font-weight: 500;
-  border-radius: 4px;
+.calendar-schedule-item {
+  font-size: 10px;
+  line-height: 1.2;
   padding: 2px 4px;
-  margin: 1px;
+  border-radius: 3px;
+  margin-top: 2px;
   cursor: pointer;
+  transition: all 0.2s ease;
 }
 
-.rbc-show-more:hover {
-  background-color: #c7d2fe;
-}
-
-.rbc-day-slot .rbc-time-slot {
-  border-top: 1px solid #f3f4f6;
-}
-
-.rbc-time-view .rbc-header {
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.rbc-agenda-view table.rbc-agenda-table {
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.rbc-agenda-view .rbc-agenda-table tbody > tr > td {
-  padding: 12px;
-  border-bottom: 1px solid #f3f4f6;
-}
-
-.rbc-agenda-view .rbc-agenda-table .rbc-agenda-time-cell {
-  font-weight: 500;
-  color: #4b5563;
-}
-
-.rbc-agenda-view .rbc-agenda-table .rbc-agenda-event-cell {
-  font-weight: 500;
-  color: #1f2937;
+.calendar-schedule-item:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 /* Custom scrollbar */
-.rbc-time-content > * + * > * {
+.custom-scrollbar {
   scrollbar-width: thin;
   scrollbar-color: #cbd5e1 #f1f5f9;
 }
 
-.rbc-time-content > * + * > *::-webkit-scrollbar {
+.custom-scrollbar::-webkit-scrollbar {
   width: 6px;
 }
 
-.rbc-time-content > * + * > *::-webkit-scrollbar-track {
+.custom-scrollbar::-webkit-scrollbar-track {
   background: #f1f5f9;
 }
 
-.rbc-time-content > * + * > *::-webkit-scrollbar-thumb {
+.custom-scrollbar::-webkit-scrollbar-thumb {
   background: #cbd5e1;
   border-radius: 3px;
 }
 
-.rbc-time-content > * + * > *::-webkit-scrollbar-thumb:hover {
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
-  .rbc-toolbar {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  
-  .rbc-toolbar-label {
-    margin: 10px 0;
-    text-align: center;
-  }
-  
-  .rbc-btn-group {
-    display: flex;
-    justify-content: center;
-    margin: 5px 0;
-  }
-  
-  .rbc-event {
-    font-size: 10px !important;
-    padding: 1px 2px !important;
+  .calendar-schedule-item {
+    font-size: 8px;
+    padding: 1px 2px;
   }
 }
