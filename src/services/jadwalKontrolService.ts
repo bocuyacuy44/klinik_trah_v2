@@ -21,9 +21,29 @@ export interface UpdateJadwalKontrol {
 class JadwalKontrolService {
   private baseUrl = "http://localhost:3001";
 
-  // Mock data untuk development
-  private mockJadwalData: { [patientId: string]: JadwalKontrol[] } = {};
-  private mockIdCounter = 1;
+  // Mock data untuk development dengan sample data
+  private mockJadwalData: { [patientId: string]: JadwalKontrol[] } = {
+    // Sample data untuk testing
+    "sample-patient-1": [
+      {
+        id: "jadwal-1",
+        patient_id: "sample-patient-1",
+        tanggal_kontrol: "2025-08-15",
+        keterangan: "Scaling gigi",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+      {
+        id: "jadwal-2",
+        patient_id: "sample-patient-1",
+        tanggal_kontrol: "2025-08-22",
+        keterangan: "Cabut gigi",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+    ],
+  };
+  private mockIdCounter = 3;
 
   // Generate mock UUID
   private generateMockUuid(): string {

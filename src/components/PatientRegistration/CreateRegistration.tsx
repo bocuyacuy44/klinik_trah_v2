@@ -1,4 +1,7 @@
 import React, { useState, useEffect } from "react";
+import { Calendar, momentLocalizer, Event } from "react-big-calendar";
+import moment from "moment";
+import "react-big-calendar/lib/css/react-big-calendar.css";
 import { Patient } from "../../types";
 import Breadcrumb from "../Layout/Breadcrumb";
 import { registrationService } from "../../services/registrationService";
@@ -6,6 +9,28 @@ import {
   jadwalKontrolService,
   JadwalKontrol,
 } from "../../services/jadwalKontrolService";
+
+// Setup localizer untuk calendar
+const localizer = momentLocalizer(moment);
+
+// Konfigurasi bahasa Indonesia untuk moment
+moment.locale("id", {
+  months:
+    "Januari_Februari_Maret_April_Mei_Juni_Juli_Agustus_September_Oktober_November_Desember".split(
+      "_"
+    ),
+  monthsShort: "Jan_Feb_Mar_Apr_Mei_Jun_Jul_Agu_Sep_Okt_Nov_Des".split("_"),
+  weekdays: "Minggu_Senin_Selasa_Rabu_Kamis_Jumat_Sabtu".split("_"),
+  weekdaysShort: "Min_Sen_Sel_Rab_Kam_Jum_Sab".split("_"),
+  weekdaysMin: "Mi_Sn_Sl_Rb_Km_Jm_Sb".split("_"),
+});
+
+// Interface untuk event calendar
+interface CalendarEvent extends Event {
+  id: string;
+  jadwalId: string;
+  keterangan: string;
+}
 
 interface CreateRegistrationProps {
   patient: Patient;
@@ -37,7 +62,25 @@ const CreateRegistration: React.FC<CreateRegistrationProps> = ({
   );
 
   // State untuk jadwal kontrol
-  const [jadwalKontrol, setJadwalKontrol] = useState<JadwalKontrol[]>([]);
+  const [jadwalKontrol, setJadwalKontrol] = useState<JadwalKontrol[]>([
+    // Sample data untuk testing
+    {
+      id: "test-jadwal-1",
+      patient_id: patient.id,
+      tanggal_kontrol: "2025-08-15",
+      keterangan: "Scaling gigi",
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+    {
+      id: "test-jadwal-2",
+      patient_id: patient.id,
+      tanggal_kontrol: "2025-08-22",
+      keterangan: "Bersihkan karang gigi",
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+  ]);
   const [newJadwal, setNewJadwal] = useState({
     tanggal_kontrol: "",
     keterangan: "",
@@ -75,11 +118,13 @@ const CreateRegistration: React.FC<CreateRegistrationProps> = ({
   useEffect(() => {
     const loadJadwalKontrol = async () => {
       try {
+        console.log("Loading jadwal kontrol for patient:", patient.id);
         // Buat tabel jika belum ada
         await jadwalKontrolService.createTableIfNotExists();
         // Load jadwal kontrol untuk pasien ini
         const jadwalData =
           await jadwalKontrolService.getJadwalKontrolByPatientId(patient.id);
+        console.log("Loaded jadwal data:", jadwalData);
         setJadwalKontrol(jadwalData);
       } catch (error) {
         console.error("Error loading jadwal kontrol:", error);
@@ -124,9 +169,7 @@ const CreateRegistration: React.FC<CreateRegistrationProps> = ({
   };
 
   // Fungsi untuk menambah jadwal kontrol
-  const handleAddJadwal = async (e: React.FormEvent) => {
-    e.preventDefault();
-
+  const handleAddJadwal = async () => {
     if (!newJadwal.tanggal_kontrol || !newJadwal.keterangan) {
       onShowNotification?.("error", "Tanggal dan keterangan harus diisi");
       return;
@@ -171,107 +214,372 @@ const CreateRegistration: React.FC<CreateRegistrationProps> = ({
     }
   };
 
-  // Fungsi untuk generate warna berdasarkan bulan
-  const getCalendarDayColor = (date: Date) => {
-    const dateStr = date.toISOString().split("T")[0];
-    const jadwal = jadwalKontrol.find((j) => j.tanggal_kontrol === dateStr);
-
-    if (jadwal) {
-      return "bg-blue-500 text-white hover:bg-blue-600";
-    }
-
-    const today = new Date().toISOString().split("T")[0];
-    if (dateStr === today) {
-      return "bg-green-500 text-white";
-    }
-
-    return "bg-gray-100 hover:bg-gray-200 text-gray-700";
+  // Fungsi untuk mengkonversi jadwal kontrol ke format calendar events
+  const getCalendarEvents = (): CalendarEvent[] => {
+    console.log("Converting jadwal kontrol to calendar events:", jadwalKontrol);
+    const events = jadwalKontrol.map((jadwal) => ({
+      id: jadwal.id,
+      jadwalId: jadwal.id,
+      title: jadwal.keterangan,
+      keterangan: jadwal.keterangan,
+      start: new Date(jadwal.tanggal_kontrol + "T09:00:00"),
+      end: new Date(jadwal.tanggal_kontrol + "T10:00:00"),
+      allDay: false,
+    }));
+    console.log("Generated calendar events:", events);
+    return events;
   };
 
-  // Komponen kalender sederhana
-  const SimpleCalendar = () => {
-    const currentDate = new Date();
-    const currentMonth = currentDate.getMonth();
-    const currentYear = currentDate.getFullYear();
+  // Custom style untuk event di calendar
+  const eventStyleGetter = (event: CalendarEvent) => {
+    const now = new Date();
+    const eventDate = new Date(event.start!);
+    const isPast = eventDate < now;
+    const isToday = eventDate.toDateString() === now.toDateString();
 
-    const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
-    const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0);
-    const firstDayWeek = firstDayOfMonth.getDay();
-    const daysInMonth = lastDayOfMonth.getDate();
+    let backgroundColor = "#3B82F6"; // Default blue
 
-    const monthNames = [
-      "Januari",
-      "Februari",
-      "Maret",
-      "April",
-      "Mei",
-      "Juni",
-      "Juli",
-      "Agustus",
-      "September",
-      "Oktober",
-      "November",
-      "Desember",
-    ];
-
-    const dayNames = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
-
-    const days = [];
-
-    // Empty cells untuk hari sebelum tanggal 1
-    for (let i = 0; i < firstDayWeek; i++) {
-      days.push(<div key={`empty-${i}`} className="w-10 h-10"></div>);
-    }
-
-    // Hari-hari dalam bulan
-    for (let day = 1; day <= daysInMonth; day++) {
-      const date = new Date(currentYear, currentMonth, day);
-      const dateStr = date.toISOString().split("T")[0];
-      const jadwal = jadwalKontrol.find((j) => j.tanggal_kontrol === dateStr);
-
-      days.push(
-        <div
-          key={day}
-          className={`w-10 h-10 flex items-center justify-center text-sm rounded-lg cursor-pointer ${getCalendarDayColor(
-            date
-          )}`}
-          title={jadwal ? jadwal.keterangan : ""}
-        >
-          {day}
-        </div>
+    if (isPast) {
+      backgroundColor = "#6B7280"; // Gray untuk jadwal yang sudah lewat
+    } else if (isToday) {
+      backgroundColor = "#10B981"; // Green untuk hari ini
+    } else {
+      // Warna berbeda berdasarkan tingkat urgensi
+      const daysUntil = Math.ceil(
+        (eventDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
       );
+      if (daysUntil <= 3) {
+        backgroundColor = "#F59E0B"; // Amber untuk 3 hari ke depan
+      } else if (daysUntil <= 7) {
+        backgroundColor = "#8B5CF6"; // Purple untuk seminggu ke depan
+      }
     }
+
+    return {
+      style: {
+        backgroundColor,
+        borderRadius: "6px",
+        opacity: isPast ? 0.6 : 0.9,
+        color: "white",
+        border: "none",
+        display: "block",
+        fontSize: "11px",
+        fontWeight: "500",
+        padding: "3px 6px",
+        boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
+        cursor: "pointer",
+        transition: "all 0.2s ease",
+      },
+    };
+  };
+
+  // Custom format untuk tanggal
+  const formats = {
+    monthHeaderFormat: "MMMM YYYY",
+    dayHeaderFormat: "dddd, DD MMMM",
+    dayRangeHeaderFormat: ({ start, end }: { start: Date; end: Date }) =>
+      `${moment(start).format("DD MMM")} - ${moment(end).format(
+        "DD MMM YYYY"
+      )}`,
+    agendaDateFormat: "dddd, DD MMMM",
+    agendaTimeFormat: "HH:mm",
+    agendaTimeRangeFormat: ({ start, end }: { start: Date; end: Date }) =>
+      `${moment(start).format("HH:mm")} - ${moment(end).format("HH:mm")}`,
+  };
+
+  // Handle klik pada event di calendar
+  const handleSelectEvent = (event: CalendarEvent) => {
+    const eventDate = new Date(event.start!);
+    const formattedDate = moment(event.start).format("dddd, DD MMMM YYYY");
+    const now = new Date();
+    const isPast = eventDate < now;
+    const isToday = eventDate.toDateString() === now.toDateString();
+
+    let statusText = "";
+    if (isPast) {
+      statusText = " (Sudah Lewat)";
+    } else if (isToday) {
+      statusText = " (Hari Ini)";
+    } else {
+      const daysUntil = Math.ceil(
+        (eventDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+      );
+      statusText = ` (${daysUntil} hari lagi)`;
+    }
+
+    const message =
+      `📅 Detail Jadwal Kontrol:\n\n` +
+      `👤 Pasien: ${patient.namaLengkap}\n` +
+      `📋 Rekam Medik: ${patient.rekamMedik}\n` +
+      `📅 Tanggal: ${formattedDate}${statusText}\n` +
+      `📝 Keterangan: ${event.keterangan}\n\n` +
+      `❌ Apakah Anda yakin ingin menghapus jadwal kontrol ini?`;
+
+    if (confirm(message)) {
+      handleDeleteJadwal(event.jadwalId);
+    }
+  };
+
+  // Handle klik pada slot tanggal kosong
+  const handleSelectSlot = ({ start }: { start: Date }) => {
+    const selectedDate = moment(start).format("YYYY-MM-DD");
+    setNewJadwal((prev) => ({
+      ...prev,
+      tanggal_kontrol: selectedDate,
+    }));
+  };
+
+  // Komponen kalender yang lebih advanced
+  const AdvancedCalendar = () => {
+    const events = getCalendarEvents();
+    const totalJadwal = jadwalKontrol.length;
+    const jadwalMendatang = jadwalKontrol.filter(
+      (j) => new Date(j.tanggal_kontrol) >= new Date()
+    ).length;
 
     return (
-      <div className="bg-white p-4 rounded-lg border border-gray-200">
-        <div className="text-center font-semibold text-lg mb-4">
-          {monthNames[currentMonth]} {currentYear}
-        </div>
-
-        {/* Header hari */}
-        <div className="grid grid-cols-7 gap-1 mb-2">
-          {dayNames.map((dayName) => (
-            <div
-              key={dayName}
-              className="w-10 h-8 flex items-center justify-center text-xs font-medium text-gray-500"
-            >
-              {dayName}
+      <div className="space-y-4">
+        {/* Header dengan statistik */}
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <h4 className="text-lg font-semibold text-gray-900 mb-2">
+                📅 Kalender Jadwal Kontrol Pasien
+              </h4>
+              <div className="flex space-x-6 text-sm">
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                  <span className="text-gray-700">
+                    Total Jadwal: <strong>{totalJadwal}</strong>
+                  </span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                  <span className="text-gray-700">
+                    Mendatang: <strong>{jadwalMendatang}</strong>
+                  </span>
+                </div>
+              </div>
             </div>
-          ))}
+            <div className="text-right text-sm text-gray-600">
+              <div className="font-medium">Pasien: {patient.namaLengkap}</div>
+              <div>RM: {patient.rekamMedik}</div>
+            </div>
+          </div>
         </div>
 
-        {/* Grid tanggal */}
-        <div className="grid grid-cols-7 gap-1">{days}</div>
+        {/* Kalender */}
+        <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+          <div style={{ height: "600px" }}>
+            <Calendar
+              localizer={localizer}
+              events={events}
+              startAccessor="start"
+              endAccessor="end"
+              style={{ height: "100%" }}
+              eventPropGetter={eventStyleGetter}
+              formats={formats}
+              messages={{
+                next: "Selanjutnya",
+                previous: "Sebelumnya",
+                today: "Hari Ini",
+                month: "Bulan",
+                week: "Minggu",
+                day: "Hari",
+                agenda: "Agenda",
+                date: "Tanggal",
+                time: "Waktu",
+                event: "Acara",
+                noEventsInRange:
+                  "Tidak ada jadwal kontrol dalam rentang tanggal ini.",
+                showMore: (total) => `+${total} lainnya`,
+              }}
+              onSelectEvent={handleSelectEvent}
+              onSelectSlot={handleSelectSlot}
+              selectable={true}
+              popup={true}
+              views={["month", "week", "day", "agenda"]}
+              defaultView="month"
+              step={60}
+              showMultiDayTimes
+              components={{
+                event: ({ event }) => {
+                  const eventDate = new Date(event.start!);
+                  const now = new Date();
+                  const isPast = eventDate < now;
+                  const isToday =
+                    eventDate.toDateString() === now.toDateString();
 
-        {/* Legend */}
-        <div className="mt-4 text-xs space-y-1">
-          <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 bg-blue-500 rounded"></div>
-            <span>Jadwal Kontrol</span>
+                  let icon = "🏥";
+                  if (isPast) {
+                    icon = "✅";
+                  } else if (isToday) {
+                    icon = "⏰";
+                  } else {
+                    const daysUntil = Math.ceil(
+                      (eventDate.getTime() - now.getTime()) /
+                        (1000 * 60 * 60 * 24)
+                    );
+                    if (daysUntil <= 3) {
+                      icon = "🔔"; // Urgent
+                    }
+                  }
+
+                  return (
+                    <div className="text-xs font-medium h-full flex flex-col justify-center">
+                      <div className="font-semibold text-white flex items-center justify-center">
+                        <span className="mr-1">{icon}</span>
+                        Kontrol
+                      </div>
+                      <div className="text-xs opacity-95 truncate text-white text-center leading-tight">
+                        {event.keterangan.length > 15
+                          ? `${event.keterangan.substring(0, 12)}...`
+                          : event.keterangan}
+                      </div>
+                    </div>
+                  );
+                },
+                agenda: {
+                  event: ({ event }) => {
+                    const eventDate = new Date(event.start!);
+                    const now = new Date();
+                    const isPast = eventDate < now;
+                    const isToday =
+                      eventDate.toDateString() === now.toDateString();
+
+                    let statusBadge = null;
+                    let icon = "🏥";
+
+                    if (isPast) {
+                      statusBadge = (
+                        <span className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded-full">
+                          Selesai
+                        </span>
+                      );
+                      icon = "✅";
+                    } else if (isToday) {
+                      statusBadge = (
+                        <span className="text-xs bg-green-200 text-green-800 px-2 py-1 rounded-full">
+                          Hari Ini
+                        </span>
+                      );
+                      icon = "⏰";
+                    } else {
+                      const daysUntil = Math.ceil(
+                        (eventDate.getTime() - now.getTime()) /
+                          (1000 * 60 * 60 * 24)
+                      );
+                      if (daysUntil <= 3) {
+                        statusBadge = (
+                          <span className="text-xs bg-orange-200 text-orange-800 px-2 py-1 rounded-full">
+                            Segera
+                          </span>
+                        );
+                        icon = "🔔";
+                      } else {
+                        statusBadge = (
+                          <span className="text-xs bg-blue-200 text-blue-800 px-2 py-1 rounded-full">
+                            Mendatang
+                          </span>
+                        );
+                      }
+                    }
+
+                    return (
+                      <div className="flex items-center justify-between w-full">
+                        <div className="flex items-center space-x-3">
+                          <div className="text-lg">{icon}</div>
+                          <div>
+                            <div className="font-medium text-gray-900">
+                              Jadwal Kontrol
+                            </div>
+                            <div className="text-sm text-gray-600">
+                              {event.keterangan}
+                            </div>
+                          </div>
+                        </div>
+                        {statusBadge}
+                      </div>
+                    );
+                  },
+                },
+              }}
+            />
           </div>
-          <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 bg-green-500 rounded"></div>
-            <span>Hari Ini</span>
+        </div>
+
+        {/* Legend dan informasi */}
+        <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <div className="font-medium text-gray-700 mb-3">
+                🔍 Cara Menggunakan Kalender:
+              </div>
+              <div className="space-y-2 text-sm text-gray-600">
+                <div className="flex items-start space-x-2">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full mt-1.5 flex-shrink-0"></div>
+                  <span>
+                    <strong>Klik pada jadwal</strong> untuk melihat detail dan
+                    opsi hapus
+                  </span>
+                </div>
+                <div className="flex items-start space-x-2">
+                  <div className="w-2 h-2 bg-gray-400 rounded-full mt-1.5 flex-shrink-0"></div>
+                  <span>
+                    <strong>Klik tanggal kosong</strong> untuk mengisi form
+                    tanggal otomatis
+                  </span>
+                </div>
+                <div className="flex items-start space-x-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full mt-1.5 flex-shrink-0"></div>
+                  <span>
+                    <strong>Gunakan tombol view</strong> untuk melihat
+                    Bulan/Minggu/Hari/Agenda
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <div className="font-medium text-gray-700 mb-3">
+                📊 Ringkasan Jadwal:
+              </div>
+              {jadwalKontrol.length > 0 ? (
+                <div className="space-y-2 text-sm">
+                  {jadwalKontrol.slice(0, 3).map((jadwal) => (
+                    <div
+                      key={jadwal.id}
+                      className="flex items-center space-x-2 text-gray-600"
+                    >
+                      <div className="w-2 h-2 bg-blue-400 rounded-full flex-shrink-0"></div>
+                      <span className="truncate">
+                        <strong>
+                          {new Date(jadwal.tanggal_kontrol).toLocaleDateString(
+                            "id-ID",
+                            {
+                              day: "2-digit",
+                              month: "short",
+                            }
+                          )}
+                        </strong>{" "}
+                        - {jadwal.keterangan}
+                      </span>
+                    </div>
+                  ))}
+                  {jadwalKontrol.length > 3 && (
+                    <div className="text-xs text-gray-500 italic">
+                      ... dan {jadwalKontrol.length - 3} jadwal lainnya di
+                      kalender
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-sm text-gray-500 italic">
+                  Belum ada jadwal kontrol. Tambahkan jadwal baru menggunakan
+                  form di atas.
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -324,10 +632,7 @@ const CreateRegistration: React.FC<CreateRegistrationProps> = ({
         return (
           <div className="p-6 space-y-6">
             {/* Form untuk menambah jadwal kontrol */}
-            <form
-              onSubmit={handleAddJadwal}
-              className="bg-gray-50 p-4 rounded-lg"
-            >
+            <div className="bg-gray-50 p-4 rounded-lg">
               <h4 className="font-medium text-gray-900 mb-4">
                 Tambah Jadwal Kontrol
               </h4>
@@ -374,59 +679,21 @@ const CreateRegistration: React.FC<CreateRegistrationProps> = ({
 
               <div className="mt-4">
                 <button
-                  type="submit"
+                  type="button"
+                  onClick={handleAddJadwal}
                   disabled={jadwalLoading}
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors disabled:opacity-50"
                 >
                   {jadwalLoading ? "Menyimpan..." : "Tambah Jadwal"}
                 </button>
               </div>
-            </form>
+            </div>
 
-            {/* Daftar jadwal kontrol yang sudah ada */}
-            {jadwalKontrol.length > 0 && (
-              <div className="space-y-3">
-                <h4 className="font-medium text-gray-900">
-                  Jadwal Kontrol Yang Sudah Ada
-                </h4>
-                {jadwalKontrol.map((jadwal) => (
-                  <div
-                    key={jadwal.id}
-                    className="flex items-center justify-between bg-white p-3 rounded-lg border border-gray-200"
-                  >
-                    <div>
-                      <div className="font-medium text-gray-900">
-                        {new Date(jadwal.tanggal_kontrol).toLocaleDateString(
-                          "id-ID",
-                          {
-                            weekday: "long",
-                            year: "numeric",
-                            month: "long",
-                            day: "numeric",
-                          }
-                        )}
-                      </div>
-                      <div className="text-sm text-gray-600">
-                        {jadwal.keterangan}
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => handleDeleteJadwal(jadwal.id)}
-                      className="text-red-600 hover:text-red-800 text-sm font-medium"
-                    >
-                      Hapus
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
+            {/* Daftar jadwal kontrol yang sudah ada - sekarang akan ditampilkan di kalender */}
 
             {/* Kalender */}
             <div>
-              <h4 className="font-medium text-gray-900 mb-4">
-                Kalender Jadwal Kontrol
-              </h4>
-              <SimpleCalendar />
+              <AdvancedCalendar />
             </div>
           </div>
         );
