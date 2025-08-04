@@ -664,6 +664,183 @@ app.get("/sdm/search", async (req, res) => {
   }
 });
 
+// ==================== JADWAL KONTROL ENDPOINTS ====================
+
+// Create jadwal kontrol table if not exists (run this once)
+app.get("/create-jadwal-table", async (req, res) => {
+  try {
+    // Check if table already exists with correct structure
+    const tableCheck = await pool.query(`
+      SELECT column_name, data_type, is_nullable
+      FROM information_schema.columns 
+      WHERE table_name = 'jadwal_kontrol' 
+      ORDER BY ordinal_position
+    `);
+
+    // If table exists, check if it has the correct structure
+    if (tableCheck.rows.length > 0) {
+      const expectedColumns = {
+        'id': 'uuid',
+        'patient_id': 'uuid',
+        'tanggal_kontrol': 'date',
+        'keterangan': 'text',
+        'created_at': 'timestamp with time zone',
+        'updated_at': 'timestamp with time zone'
+      };
+
+      const actualColumns = {};
+      tableCheck.rows.forEach(row => {
+        actualColumns[row.column_name] = row.data_type;
+      });
+
+      // Check if all expected columns exist with correct types
+      let structureMatch = true;
+      for (const [column, type] of Object.entries(expectedColumns)) {
+        if (!actualColumns[column] || actualColumns[column] !== type) {
+          structureMatch = false;
+          break;
+        }
+      }
+
+      if (structureMatch) {
+        return res.json({
+          message: "Tabel jadwal_kontrol sudah ada dengan struktur yang benar",
+        });
+      }
+    }
+
+    // If table doesn't exist or has incorrect structure, create it
+    // First, drop the table if it exists with incorrect structure
+    await pool.query(`DROP TABLE IF EXISTS jadwal_kontrol CASCADE;`);
+
+    // Create new table with UUID primary key (consistent with other tables)
+    await pool.query(`
+      CREATE TABLE jadwal_kontrol (
+        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+        patient_id UUID REFERENCES patients(id) ON DELETE CASCADE,
+        tanggal_kontrol DATE NOT NULL,
+        keterangan TEXT,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    res.json({
+      message: "Tabel jadwal_kontrol berhasil dibuat atau diperbarui",
+    });
+  } catch (error) {
+    console.error("Error creating jadwal_kontrol table:", error);
+    res
+      .status(500)
+      .json({
+        message: "Gagal membuat tabel jadwal_kontrol",
+        error: error.message,
+      });
+  }
+});
+
+
+// Get jadwal kontrol by patient ID
+app.get("/jadwal-kontrol/:patientId", async (req, res) => {
+  try {
+    const { patientId } = req.params;
+    const result = await pool.query(
+      "SELECT * FROM jadwal_kontrol WHERE patient_id = $1 ORDER BY tanggal_kontrol ASC",
+      [patientId]
+    );
+    res.json(result.rows);
+  } catch (error) {
+    console.error("Error fetching jadwal kontrol:", error);
+    res
+      .status(500)
+      .json({
+        message: "Gagal mengambil jadwal kontrol",
+        error: error.message,
+      });
+  }
+});
+
+// Create jadwal kontrol
+app.post("/jadwal-kontrol", async (req, res) => {
+  try {
+    const { patient_id, tanggal_kontrol, keterangan } = req.body;
+
+    if (!patient_id || !tanggal_kontrol) {
+      return res
+        .status(400)
+        .json({ message: "Patient ID dan tanggal kontrol harus diisi" });
+    }
+
+    const result = await pool.query(
+      `INSERT INTO jadwal_kontrol (patient_id, tanggal_kontrol, keterangan) 
+       VALUES ($1, $2, $3) 
+       RETURNING *`,
+      [patient_id, tanggal_kontrol, keterangan]
+    );
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error("Error creating jadwal kontrol:", error);
+    res
+      .status(500)
+      .json({ message: "Gagal membuat jadwal kontrol", error: error.message });
+  }
+});
+
+// Update jadwal kontrol
+app.put("/jadwal-kontrol/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { tanggal_kontrol, keterangan } = req.body;
+
+    const result = await pool.query(
+      `UPDATE jadwal_kontrol 
+       SET tanggal_kontrol = $1, keterangan = $2, updated_at = CURRENT_TIMESTAMP
+       WHERE id = $3
+       RETURNING *`,
+      [tanggal_kontrol, keterangan, id]
+    );
+
+    if (result.rows.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "Jadwal kontrol tidak ditemukan" });
+    }
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error("Error updating jadwal kontrol:", error);
+    res
+      .status(500)
+      .json({ message: "Gagal update jadwal kontrol", error: error.message });
+  }
+});
+
+// Delete jadwal kontrol
+app.delete("/jadwal-kontrol/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query(
+      "DELETE FROM jadwal_kontrol WHERE id = $1 RETURNING *",
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "Jadwal kontrol tidak ditemukan" });
+    }
+
+    res.json({ message: "Jadwal kontrol berhasil dihapus" });
+  } catch (error) {
+    console.error("Error deleting jadwal kontrol:", error);
+    res
+      .status(500)
+      .json({
+        message: "Gagal menghapus jadwal kontrol",
+        error: error.message,
+      });
+  }
+});
+
 app.listen(port, () => {
   console.log(`Server berjalan di port ${port}`);
 });
