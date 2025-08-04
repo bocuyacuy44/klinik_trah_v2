@@ -2,6 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+/* FullCalendar imports */
+@import '@fullcalendar/core/main.css';
+@import '@fullcalendar/daygrid/main.css';
+
 /* Modal animations */
 @keyframes modal-enter {
   from {
@@ -16,6 +20,65 @@
 
 .animate-modal-enter {
   animation: modal-enter 0.2s ease-out;
+}
+
+/* FullCalendar custom styles */
+.fc {
+  font-family: inherit;
+}
+
+.fc-toolbar {
+  margin-bottom: 1rem;
+}
+
+.fc-toolbar h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.fc-button {
+  background-color: #3b82f6;
+  border-color: #3b82f6;
+  color: white;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.fc-button:hover:not(:disabled) {
+  background-color: #2563eb;
+  border-color: #2563eb;
+}
+
+.fc-button:disabled {
+  opacity: 0.6;
+}
+
+.fc-day-today {
+  background-color: #dbeafe !important;
+}
+
+.fc-daygrid-day:hover {
+  background-color: #f9fafb;
+}
+
+.fc-event {
+  cursor: pointer;
+  border-radius: 4px;
+  font-weight: 500;
+  font-size: 0.75rem;
+}
+
+.fc-event:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.fc-daygrid-event {
+  margin: 1px 2px;
 }
 
 /* Custom calendar styles */
@@ -75,5 +138,15 @@
   .calendar-schedule-item {
     font-size: 8px;
     padding: 1px 2px;
+  }
+  
+  .fc-toolbar {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .fc-toolbar-chunk {
+    display: flex;
+    justify-content: center;
   }
 }
