@@ -1,19 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, Search, Edit, Eye, Trash2, Users } from 'lucide-react';
-import { SDM } from '../../types';
-import { sdmService } from '../../services/sdmService';
-import { toast } from 'react-toastify';
-import ConfirmationModal from '../UI/ConfirmationModal';
-import SDMForm from './SDMForm';
+import React, { useState, useEffect } from "react";
+import { Plus, Search, Edit, Eye, Trash2, Users } from "lucide-react";
+import { SDM } from "../../types";
+import { sdmService } from "../../services/sdmService";
+import { toast } from "react-toastify";
+import ConfirmationModal from "../UI/ConfirmationModal";
+import SDMForm from "./SDMForm";
 
 const SDMData: React.FC = () => {
   const [sdmList, setSdmList] = useState<SDM[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedSDM, setSelectedSDM] = useState<SDM | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
+  const [formMode, setFormMode] = useState<"create" | "edit">("create");
   const [editingSDM, setEditingSDM] = useState<SDM | null>(null);
 
   useEffect(() => {
@@ -26,8 +26,8 @@ const SDMData: React.FC = () => {
       const data = await sdmService.getAllSDM();
       setSdmList(data);
     } catch (error) {
-      toast.error('Gagal mengambil data SDM');
-      console.error('Error fetching SDM:', error);
+      toast.error("Gagal mengambil data SDM");
+      console.error("Error fetching SDM:", error);
     } finally {
       setLoading(false);
     }
@@ -44,8 +44,8 @@ const SDMData: React.FC = () => {
       const data = await sdmService.searchSDM(searchTerm);
       setSdmList(data);
     } catch (error) {
-      toast.error('Gagal mencari data SDM');
-      console.error('Error searching SDM:', error);
+      toast.error("Gagal mencari data SDM");
+      console.error("Error searching SDM:", error);
     } finally {
       setLoading(false);
     }
@@ -56,13 +56,13 @@ const SDMData: React.FC = () => {
 
     try {
       await sdmService.deleteSDM(selectedSDM.id);
-      toast.success('Data SDM berhasil dihapus');
+      toast.success("Data SDM berhasil dihapus");
       fetchSDMData();
       setShowDeleteModal(false);
       setSelectedSDM(null);
     } catch (error) {
-      toast.error('Gagal menghapus data SDM');
-      console.error('Error deleting SDM:', error);
+      toast.error("Gagal menghapus data SDM");
+      console.error("Error deleting SDM:", error);
     }
   };
 
@@ -72,13 +72,13 @@ const SDMData: React.FC = () => {
   };
 
   const openCreateForm = () => {
-    setFormMode('create');
+    setFormMode("create");
     setEditingSDM(null);
     setShowForm(true);
   };
 
   const openEditForm = (sdm: SDM) => {
-    setFormMode('edit');
+    setFormMode("edit");
     setEditingSDM(sdm);
     setShowForm(true);
   };
@@ -95,7 +95,7 @@ const SDMData: React.FC = () => {
   };
 
   const getStatusBadge = (status: string) => {
-    return status === 'aktif' ? (
+    return status === "aktif" ? (
       <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
         Aktif
       </span>
@@ -132,7 +132,7 @@ const SDMData: React.FC = () => {
               placeholder="Cari SDM..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+              onKeyPress={(e) => e.key === "Enter" && handleSearch()}
               className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
@@ -173,9 +173,6 @@ const SDMData: React.FC = () => {
                 Username
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Email
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Status
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -202,16 +199,13 @@ const SDMData: React.FC = () => {
                   {sdm.role}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {sdm.username || '-'}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {sdm.email || '-'}
+                  {sdm.username || "-"}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   {getStatusBadge(sdm.status)}
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">
-                  {sdm.keterangan || '-'}
+                  {sdm.keterangan || "-"}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                   <div className="flex items-center gap-2">
@@ -223,7 +217,9 @@ const SDMData: React.FC = () => {
                       <Edit className="w-4 h-4" />
                     </button>
                     <button
-                      onClick={() => {/* TODO: Navigate to view SDM details */}}
+                      onClick={() => {
+                        /* TODO: Navigate to view SDM details */
+                      }}
                       className="text-green-600 hover:text-green-900"
                       title="Lihat Detail"
                     >
@@ -277,4 +273,4 @@ const SDMData: React.FC = () => {
   );
 };
 
-export default SDMData; 
+export default SDMData;

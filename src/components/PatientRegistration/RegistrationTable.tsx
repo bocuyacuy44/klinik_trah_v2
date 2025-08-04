@@ -4,7 +4,6 @@ import {
   Search,
   Filter,
   Edit,
-  Eye,
   Trash2,
   ChevronLeft,
   ChevronRight,
@@ -15,14 +14,12 @@ import { formatDate } from "../../utils/generators";
 interface RegistrationTableProps {
   registrations: Registration[];
   onEdit: (registration: Registration) => void;
-  onView: (registration: Registration) => void;
   onDelete: (registration: Registration) => void;
 }
 
 const RegistrationTable: React.FC<RegistrationTableProps> = ({
   registrations,
   onEdit,
-  onView,
   onDelete,
 }) => {
   const [searchIdPendaftaran, setSearchIdPendaftaran] = useState("");
@@ -206,18 +203,14 @@ const RegistrationTable: React.FC<RegistrationTableProps> = ({
                       <button
                         onClick={() => onEdit(registration)}
                         className="text-blue-600 hover:text-blue-800 transition-colors"
+                        title="Edit Pendaftaran"
                       >
                         <Edit className="w-5 h-5" />
                       </button>
                       <button
-                        onClick={() => onView(registration)}
-                        className="text-green-600 hover:text-green-800 transition-colors"
-                      >
-                        <Eye className="w-5 h-5" />
-                      </button>
-                      <button
                         onClick={() => onDelete(registration)}
                         className="text-red-600 hover:text-red-800 transition-colors"
+                        title="Batalkan Pendaftaran"
                       >
                         <Trash2 className="w-5 h-5" />
                       </button>

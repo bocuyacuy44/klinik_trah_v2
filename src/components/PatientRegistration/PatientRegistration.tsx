@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Plus } from "lucide-react";
 import RegistrationTable from "./RegistrationTable";
 import ConfirmationModal from "../UI/ConfirmationModal";
-import { Registration, Patient } from "../../types";
+import { Registration, Patient, User } from "../../types";
 import { registrationService } from "../../services/registrationService";
 import { patientService } from "../../services/patientService";
 
@@ -16,6 +16,7 @@ interface PatientRegistrationProps {
   ) => void;
   onNavigateToPatientDetail: (registration: Registration) => void;
   onShowNotification?: (type: "success" | "error", message: string) => void;
+  user?: User | null;
 }
 
 const PatientRegistration: React.FC<PatientRegistrationProps> = ({
@@ -25,6 +26,7 @@ const PatientRegistration: React.FC<PatientRegistrationProps> = ({
   onNavigateToEditRegistration,
   onNavigateToPatientDetail,
   onShowNotification,
+  user,
 }) => {
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [deleteModal, setDeleteModal] = useState<{
@@ -114,28 +116,31 @@ const PatientRegistration: React.FC<PatientRegistrationProps> = ({
         </h1>
 
         <div className="flex space-x-4 mb-6">
-          <button
-            onClick={onNavigateToSelectPatient}
-            className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
-          >
-            <Plus className="w-5 h-5" />
-            <span>Tambah Pendaftaran Pasien Lama</span>
-          </button>
+          {user?.role !== "dokter" && (
+            <>
+              <button
+                onClick={onNavigateToSelectPatient}
+                className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+              >
+                <Plus className="w-5 h-5" />
+                <span>Tambah Pendaftaran Pasien Lama</span>
+              </button>
 
-          <button
-            onClick={onNavigateToNewPatient}
-            className="flex items-center space-x-2 px-4 py-2 bg-white border border-blue-600 text-blue-600 rounded-lg font-medium hover:bg-blue-50 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
-          >
-            <Plus className="w-5 h-5" />
-            <span>Tambah Pendaftaran Pasien Baru</span>
-          </button>
+              <button
+                onClick={onNavigateToNewPatient}
+                className="flex items-center space-x-2 px-4 py-2 bg-white border border-blue-600 text-blue-600 rounded-lg font-medium hover:bg-blue-50 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+              >
+                <Plus className="w-5 h-5" />
+                <span>Tambah Pendaftaran Pasien Baru</span>
+              </button>
+            </>
+          )}
         </div>
       </div>
 
       <RegistrationTable
         registrations={registrations}
         onEdit={handleEdit}
-        onView={handleView}
         onDelete={handleDelete}
       />
 

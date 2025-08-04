@@ -1,98 +1,102 @@
-import React, { useState, useEffect } from 'react';
-import { Save, X, UserPlus, Edit } from 'lucide-react';
-import { SDM } from '../../types';
-import { sdmService } from '../../services/sdmService';
-import { toast } from 'react-toastify';
+import React, { useState, useEffect } from "react";
+import { Save, X, UserPlus, Edit } from "lucide-react";
+import { SDM } from "../../types";
+import { sdmService } from "../../services/sdmService";
+import { toast } from "react-toastify";
 
 interface SDMFormProps {
   sdm?: SDM | null;
   onSave: () => void;
   onCancel: () => void;
-  mode: 'create' | 'edit';
+  mode: "create" | "edit";
 }
 
 const SDMForm: React.FC<SDMFormProps> = ({ sdm, onSave, onCancel, mode }) => {
   const [formData, setFormData] = useState({
-    nama: '',
-    jabatan: '',
-    role: 'dokter' as 'dokter' | 'perawat' | 'admin',
-    status: 'aktif' as 'aktif' | 'non-aktif',
-    keterangan: '',
-    username: '',
-    password: '',
-    email: ''
+    nama: "",
+    jabatan: "",
+    role: "dokter" as "dokter" | "perawat" | "admin",
+    status: "aktif" as "aktif" | "non-aktif",
+    keterangan: "",
+    username: "",
+    password: "",
   });
   const [loading, setLoading] = useState(false);
 
   // Role options
   const roleOptions = [
-    { value: 'dokter', label: 'Dokter' },
-    { value: 'perawat', label: 'Perawat' },
-    { value: 'admin', label: 'Admin' }
+    { value: "dokter", label: "Dokter" },
+    { value: "perawat", label: "Perawat" },
+    { value: "admin", label: "Admin" },
   ];
 
   // Status options
   const statusOptions = [
-    { value: 'aktif', label: 'Aktif' },
-    { value: 'non-aktif', label: 'Non-Aktif' }
+    { value: "aktif", label: "Aktif" },
+    { value: "non-aktif", label: "Non-Aktif" },
   ];
 
   useEffect(() => {
-    if (sdm && mode === 'edit') {
+    if (sdm && mode === "edit") {
       setFormData({
         nama: sdm.nama,
         jabatan: sdm.jabatan,
-        role: sdm.role as 'dokter' | 'perawat' | 'admin',
+        role: sdm.role as "dokter" | "perawat" | "admin",
         status: sdm.status,
-        keterangan: sdm.keterangan || '',
-        username: sdm.username || '',
-        password: '',
-        email: sdm.email || ''
+        keterangan: sdm.keterangan || "",
+        username: sdm.username || "",
+        password: "",
       });
     }
   }, [sdm, mode]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >
+  ) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.nama.trim() || !formData.jabatan.trim()) {
-      toast.error('Nama dan jabatan harus diisi');
+      toast.error("Nama dan jabatan harus diisi");
       return;
     }
 
-    if (!formData.username.trim() || !formData.email.trim()) {
-      toast.error('Username dan email harus diisi');
+    if (!formData.username.trim()) {
+      toast.error("Username harus diisi");
       return;
     }
 
-    if (mode === 'create' && !formData.password.trim()) {
-      toast.error('Password harus diisi');
+    if (mode === "create" && !formData.password.trim()) {
+      toast.error("Password harus diisi");
       return;
     }
 
     try {
       setLoading(true);
-      
-      if (mode === 'create') {
+
+      if (mode === "create") {
         await sdmService.createSDM(formData);
-        toast.success('Data SDM berhasil ditambahkan');
-      } else if (mode === 'edit' && sdm) {
+        toast.success("Data SDM berhasil ditambahkan");
+      } else if (mode === "edit" && sdm) {
         await sdmService.updateSDM(sdm.id, formData);
-        toast.success('Data SDM berhasil diperbarui');
+        toast.success("Data SDM berhasil diperbarui");
       }
-      
+
       onSave();
     } catch (error) {
-      toast.error(mode === 'create' ? 'Gagal menambahkan SDM' : 'Gagal memperbarui SDM');
-      console.error('Error saving SDM:', error);
+      toast.error(
+        mode === "create" ? "Gagal menambahkan SDM" : "Gagal memperbarui SDM"
+      );
+      console.error("Error saving SDM:", error);
     } finally {
       setLoading(false);
     }
@@ -104,13 +108,13 @@ const SDMForm: React.FC<SDMFormProps> = ({ sdm, onSave, onCancel, mode }) => {
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b">
           <div className="flex items-center gap-2">
-            {mode === 'create' ? (
+            {mode === "create" ? (
               <UserPlus className="w-5 h-5 text-blue-600" />
             ) : (
               <Edit className="w-5 h-5 text-blue-600" />
             )}
             <h2 className="text-xl font-semibold text-gray-900">
-              {mode === 'create' ? 'Tambah SDM Baru' : 'Edit Data SDM'}
+              {mode === "create" ? "Tambah SDM Baru" : "Edit Data SDM"}
             </h2>
           </div>
           <button
@@ -125,7 +129,10 @@ const SDMForm: React.FC<SDMFormProps> = ({ sdm, onSave, onCancel, mode }) => {
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Nama */}
           <div>
-            <label htmlFor="nama" className="block text-sm font-medium text-gray-700 mb-2">
+            <label
+              htmlFor="nama"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
               Nama <span className="text-red-500">*</span>
             </label>
             <input
@@ -142,7 +149,10 @@ const SDMForm: React.FC<SDMFormProps> = ({ sdm, onSave, onCancel, mode }) => {
 
           {/* Jabatan */}
           <div>
-            <label htmlFor="jabatan" className="block text-sm font-medium text-gray-700 mb-2">
+            <label
+              htmlFor="jabatan"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
               Jabatan <span className="text-red-500">*</span>
             </label>
             <input
@@ -159,7 +169,10 @@ const SDMForm: React.FC<SDMFormProps> = ({ sdm, onSave, onCancel, mode }) => {
 
           {/* Role */}
           <div>
-            <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-2">
+            <label
+              htmlFor="role"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
               Role <span className="text-red-500">*</span>
             </label>
             <select
@@ -170,7 +183,7 @@ const SDMForm: React.FC<SDMFormProps> = ({ sdm, onSave, onCancel, mode }) => {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
             >
-              {roleOptions.map(option => (
+              {roleOptions.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>
@@ -180,7 +193,10 @@ const SDMForm: React.FC<SDMFormProps> = ({ sdm, onSave, onCancel, mode }) => {
 
           {/* Status */}
           <div>
-            <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-2">
+            <label
+              htmlFor="status"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
               Status <span className="text-red-500">*</span>
             </label>
             <select
@@ -191,7 +207,7 @@ const SDMForm: React.FC<SDMFormProps> = ({ sdm, onSave, onCancel, mode }) => {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
             >
-              {statusOptions.map(option => (
+              {statusOptions.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>
@@ -201,7 +217,10 @@ const SDMForm: React.FC<SDMFormProps> = ({ sdm, onSave, onCancel, mode }) => {
 
           {/* Keterangan */}
           <div>
-            <label htmlFor="keterangan" className="block text-sm font-medium text-gray-700 mb-2">
+            <label
+              htmlFor="keterangan"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
               Keterangan
             </label>
             <textarea
@@ -217,12 +236,17 @@ const SDMForm: React.FC<SDMFormProps> = ({ sdm, onSave, onCancel, mode }) => {
 
           {/* Divider for Login Credentials */}
           <div className="border-t pt-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Informasi Login</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-4">
+              Informasi Login
+            </h3>
           </div>
 
           {/* Username */}
           <div>
-            <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
+            <label
+              htmlFor="username"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
               Username <span className="text-red-500">*</span>
             </label>
             <input
@@ -237,27 +261,14 @@ const SDMForm: React.FC<SDMFormProps> = ({ sdm, onSave, onCancel, mode }) => {
             />
           </div>
 
-          {/* Email */}
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-              Email <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              value={formData.email}
-              onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Masukkan email"
-              required
-            />
-          </div>
-
           {/* Password */}
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-              Password {mode === 'create' && <span className="text-red-500">*</span>}
+            <label
+              htmlFor="password"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
+              Password{" "}
+              {mode === "create" && <span className="text-red-500">*</span>}
             </label>
             <input
               type="password"
@@ -266,8 +277,12 @@ const SDMForm: React.FC<SDMFormProps> = ({ sdm, onSave, onCancel, mode }) => {
               value={formData.password}
               onChange={handleInputChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder={mode === 'create' ? "Masukkan password" : "Kosongkan jika tidak ingin mengubah password"}
-              required={mode === 'create'}
+              placeholder={
+                mode === "create"
+                  ? "Masukkan password"
+                  : "Kosongkan jika tidak ingin mengubah password"
+              }
+              required={mode === "create"}
             />
           </div>
 
@@ -287,7 +302,11 @@ const SDMForm: React.FC<SDMFormProps> = ({ sdm, onSave, onCancel, mode }) => {
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
             >
               <Save className="w-4 h-4" />
-              {loading ? 'Menyimpan...' : (mode === 'create' ? 'Simpan' : 'Update')}
+              {loading
+                ? "Menyimpan..."
+                : mode === "create"
+                ? "Simpan"
+                : "Update"}
             </button>
           </div>
         </form>
@@ -296,4 +315,4 @@ const SDMForm: React.FC<SDMFormProps> = ({ sdm, onSave, onCancel, mode }) => {
   );
 };
 
-export default SDMForm; 
+export default SDMForm;

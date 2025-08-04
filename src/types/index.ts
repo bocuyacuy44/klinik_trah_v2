@@ -64,24 +64,33 @@ export interface Registration {
   teleponPengantar?: string;
   noRekamMedik?: string;
   pasien?: string;
-  
 }
 
 export interface User {
   id: number;
   username: string;
-  email: string;
   password?: string;
   full_name: string;
   role: "administrasi" | "dokter" | "perawat" | "admin";
   is_active: boolean;
   nama: string;
   jabatan: string;
-  status: 'aktif' | 'non-aktif';
+  status: "aktif" | "non-aktif";
   keterangan?: string;
   created_at: string;
   updated_at: string;
 }
 
 // Alias for SDM data (using User interface)
-export type SDM = Pick<User, 'id' | 'nama' | 'jabatan' | 'role' | 'status' | 'keterangan' | 'username' | 'email' | 'created_at' | 'updated_at'>;
+export type SDM = Pick<
+  User,
+  | "id"
+  | "nama"
+  | "jabatan"
+  | "role"
+  | "status"
+  | "keterangan"
+  | "username"
+  | "created_at"
+  | "updated_at"
+>;

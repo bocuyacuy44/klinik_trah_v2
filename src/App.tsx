@@ -67,15 +67,15 @@ function App() {
     const verifyToken = async () => {
       const token = localStorage.getItem("token");
       const savedUser = localStorage.getItem("user");
-      
+
       if (token && savedUser) {
         try {
           const response = await fetch("http://localhost:3001/verify-token", {
             headers: {
-              "Authorization": `Bearer ${token}`,
+              Authorization: `Bearer ${token}`,
             },
           });
-          
+
           if (!response.ok) {
             // Token tidak valid, hapus dari localStorage
             localStorage.removeItem("user");
@@ -215,6 +215,7 @@ function App() {
             onNavigateToEditRegistration={handleNavigateToEditRegistration}
             onNavigateToPatientDetail={handleNavigateToPatientDetail}
             onShowNotification={showNotification}
+            user={user}
           />
         );
       case "select-patient":
@@ -322,9 +323,7 @@ function App() {
           />
         ) : (
           <div className="p-6">
-            <p className="text-red-600">
-              Error: Data pasien tidak ditemukan
-            </p>
+            <p className="text-red-600">Error: Data pasien tidak ditemukan</p>
           </div>
         );
       case "sdm":
@@ -349,6 +348,7 @@ function App() {
             onNavigateToEditRegistration={handleNavigateToEditRegistration}
             onNavigateToPatientDetail={handleNavigateToPatientDetail}
             onShowNotification={showNotification}
+            user={user}
           />
         );
     }
@@ -360,7 +360,11 @@ function App() {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      <Sidebar activeMenu={activeMenu} onMenuClick={handleMenuClick} />
+      <Sidebar
+        activeMenu={activeMenu}
+        onMenuClick={handleMenuClick}
+        user={user}
+      />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header user={user} onLogout={handleLogout} />
         <main className="flex-1 overflow-y-auto">{renderContent()}</main>

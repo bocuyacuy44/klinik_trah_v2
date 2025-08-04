@@ -142,7 +142,7 @@ app.post("/login", async (req, res) => {
 app.get("/verify-token", authenticateToken, async (req, res) => {
   try {
     const result = await pool.query(
-      "SELECT id, username, email, full_name, role, is_active, created_at FROM users WHERE id = $1 AND is_active = true",
+      "SELECT id, username, full_name, role, is_active, created_at FROM users WHERE id = $1 AND is_active = true",
       [req.user.id]
     );
 
@@ -507,7 +507,7 @@ app.delete("/registrations/:id", async (req, res) => {
 app.get("/sdm", async (req, res) => {
   try {
     const result = await pool.query(
-      "SELECT id, nama, jabatan, role, status, keterangan, username, email, created_at, updated_at FROM users ORDER BY created_at DESC"
+      "SELECT id, nama, jabatan, role, status, keterangan, username, created_at, updated_at FROM users ORDER BY created_at DESC"
     );
     res.json(result.rows);
   } catch (error) {
@@ -521,42 +521,24 @@ app.get("/sdm", async (req, res) => {
 // Create SDM (add to users table)
 app.post("/sdm", async (req, res) => {
   try {
-    const {
-      nama,
-      jabatan,
-      role,
-      status,
-      keterangan,
-      username,
-      email,
-      password,
-    } = req.body;
+    const { nama, jabatan, role, status, keterangan, username, password } =
+      req.body;
 
     // Validate required fields
-    if (!username || !email || !password) {
+    if (!username || !password) {
       return res
         .status(400)
-        .json({ message: "Username, email, dan password harus diisi" });
+        .json({ message: "Username dan password harus diisi" });
     }
 
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const result = await pool.query(
-      `INSERT INTO users (username, email, password, full_name, role, nama, jabatan, status, keterangan) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) 
+      `INSERT INTO users (username, password, full_name, role, nama, jabatan, status, keterangan) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
        RETURNING id, nama, jabatan, role, status, keterangan, created_at, updated_at`,
-      [
-        username,
-        email,
-        hashedPassword,
-        nama,
-        role,
-        nama,
-        jabatan,
-        status,
-        keterangan,
-      ]
+      [username, hashedPassword, nama, role, nama, jabatan, status, keterangan]
     );
     res.json(result.rows[0]);
   } catch (error) {
@@ -572,7 +554,7 @@ app.get("/sdm/:id", async (req, res) => {
   try {
     const { id } = req.params;
     const result = await pool.query(
-      "SELECT id, nama, jabatan, role, status, keterangan, username, email, created_at, updated_at FROM users WHERE id = $1",
+      "SELECT id, nama, jabatan, role, status, keterangan, username, created_at, updated_at FROM users WHERE id = $1",
       [id]
     );
     if (result.rows.length === 0) {
@@ -591,16 +573,8 @@ app.get("/sdm/:id", async (req, res) => {
 app.put("/sdm/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const {
-      nama,
-      jabatan,
-      role,
-      status,
-      keterangan,
-      username,
-      email,
-      password,
-    } = req.body;
+    const { nama, jabatan, role, status, keterangan, username, password } =
+      req.body;
 
     // Build update query dynamically
     let updateFields = [
@@ -618,13 +592,6 @@ app.put("/sdm/:id", async (req, res) => {
     if (username) {
       updateFields.push(`username = $${paramIndex}`);
       values.push(username);
-      paramIndex++;
-    }
-
-    // Add email update if provided
-    if (email) {
-      updateFields.push(`email = $${paramIndex}`);
-      values.push(email);
       paramIndex++;
     }
 
@@ -682,9 +649,9 @@ app.get("/sdm/search", async (req, res) => {
   try {
     const { term } = req.query;
     const result = await pool.query(
-      `SELECT id, nama, jabatan, role, status, keterangan, username, email, created_at, updated_at 
+      `SELECT id, nama, jabatan, role, status, keterangan, username, created_at, updated_at 
        FROM users 
-       WHERE nama ILIKE $1 OR jabatan ILIKE $1 OR role ILIKE $1 OR username ILIKE $1 OR email ILIKE $1
+       WHERE nama ILIKE $1 OR jabatan ILIKE $1 OR role ILIKE $1 OR username ILIKE $1
        ORDER BY created_at DESC`,
       [`%${term}%`]
     );
