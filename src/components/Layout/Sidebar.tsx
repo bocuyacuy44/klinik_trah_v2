@@ -1,13 +1,5 @@
 import React from "react";
-import {
-  Home,
-  Users,
-  FileText,
-  Stethoscope,
-  ClipboardList,
-  BarChart3,
-  UserCheck,
-} from "lucide-react";
+import { Home, Users, ClipboardList, BarChart3, UserCheck } from "lucide-react";
 import { User } from "../../types";
 
 interface SidebarProps {
@@ -62,7 +54,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeMenu, onMenuClick, user }) => {
 
   const sections = ["HOME", "TRANSAKSI", "MASTER DATA", "LAPORAN"];
 
-  // Filter sections that have at least one visible menu item
+  // Filter visible sections
   const visibleSections = sections.filter((section) =>
     menuItems.some((item) => item.section === section)
   );
@@ -71,12 +63,16 @@ const Sidebar: React.FC<SidebarProps> = ({ activeMenu, onMenuClick, user }) => {
     <div className="w-64 bg-white border-r border-gray-200 h-screen overflow-y-auto">
       <div className="p-6">
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
-            <Stethoscope className="w-6 h-6 text-white" />
-          </div>
+          {/* Ganti ikon dengan gambar logo */}
+          <img
+            src="/assets/img/logo.png"
+            alt="Logo Klinik"
+            className="w-10 h-10 center-lg object-cover"
+          />
           <div>
-            <h1 className="text-lg font-bold text-gray-900">KLINIK TRAH</h1>
-            <p className="text-xs text-gray-500">dr. John Doe sp.OG</p>
+            <h1 className="text-lg font-bold text-gray-900">
+              KLINIK DENTAL CARE
+            </h1>
           </div>
         </div>
       </div>

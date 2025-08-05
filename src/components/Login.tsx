@@ -57,9 +57,12 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-8">
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Stethoscope className="w-8 h-8 text-white" />
-          </div>
+          {/* Ganti ikon dengan gambar logo */}
+          <img
+            src="/assets/img/logo.png"
+            alt="Logo Klinik"
+            className="w-16 h-16 rounded-full object-cover mx-auto mb-4"
+          />
           <h1 className="text-2xl font-bold text-gray-900">Sistem Klinik</h1>
           <p className="text-gray-600 mt-2">Login Role Administrasi</p>
         </div>
@@ -118,8 +121,12 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         <div className="mt-6 text-center text-sm text-gray-500">
           <p className="mb-2">Credentials:</p>
           <div className="space-y-1">
-            <p><strong>Administrasi:</strong> admin | password123</p>
-            <p><strong>Dokter:</strong> dr.smith | password123</p>
+            <p>
+              <strong>Administrasi:</strong> admin | password123
+            </p>
+            <p>
+              <strong>Dokter:</strong> dr.smith | password123
+            </p>
           </div>
         </div>
       </div>
