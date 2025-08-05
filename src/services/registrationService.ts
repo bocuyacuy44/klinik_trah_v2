@@ -150,4 +150,33 @@ export const registrationService = {
       throw error;
     }
   },
+
+  async getRegistrationsByPatientId(
+    patientId: string
+  ): Promise<Registration[]> {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/registrations/patient/${patientId}`,
+        {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          `Gagal mengambil riwayat pendaftaran: ${
+            errorData.message || response.statusText
+          }`
+        );
+      }
+
+      const data = await response.json();
+      return data.map(convertToRegistration);
+    } catch (error) {
+      console.error("Error in getRegistrationsByPatientId:", error);
+      return []; // Return empty array if error
+    }
+  },
 };

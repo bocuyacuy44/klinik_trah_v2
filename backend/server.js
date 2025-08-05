@@ -453,6 +453,32 @@ app.get("/registrations", async (req, res) => {
   }
 });
 
+// Get registrations by patient ID
+app.get("/registrations/patient/:patientId", async (req, res) => {
+  try {
+    const { patientId } = req.params;
+    const result = await pool.query(
+      `
+      SELECT r.*, p.rekam_medik as no_rekam_medik, p.nama_lengkap as pasien
+      FROM registrations r
+      JOIN patients p ON r.patient_id = p.id
+      WHERE r.patient_id = $1
+      ORDER BY r.created_at DESC
+    `,
+      [patientId]
+    );
+    res.json(result.rows);
+  } catch (error) {
+    console.error("Error fetching patient registrations:", error);
+    res
+      .status(500)
+      .json({
+        message: "Failed to fetch patient registrations",
+        error: error.message,
+      });
+  }
+});
+
 // Update registration
 app.put("/registrations/:id", async (req, res) => {
   try {
@@ -680,16 +706,16 @@ app.get("/create-jadwal-table", async (req, res) => {
     // If table exists, check if it has the correct structure
     if (tableCheck.rows.length > 0) {
       const expectedColumns = {
-        'id': 'uuid',
-        'patient_id': 'uuid',
-        'tanggal_kontrol': 'date',
-        'keterangan': 'text',
-        'created_at': 'timestamp with time zone',
-        'updated_at': 'timestamp with time zone'
+        id: "uuid",
+        patient_id: "uuid",
+        tanggal_kontrol: "date",
+        keterangan: "text",
+        created_at: "timestamp with time zone",
+        updated_at: "timestamp with time zone",
       };
 
       const actualColumns = {};
-      tableCheck.rows.forEach(row => {
+      tableCheck.rows.forEach((row) => {
         actualColumns[row.column_name] = row.data_type;
       });
 
@@ -729,15 +755,12 @@ app.get("/create-jadwal-table", async (req, res) => {
     });
   } catch (error) {
     console.error("Error creating jadwal_kontrol table:", error);
-    res
-      .status(500)
-      .json({
-        message: "Gagal membuat tabel jadwal_kontrol",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Gagal membuat tabel jadwal_kontrol",
+      error: error.message,
+    });
   }
 });
-
 
 // Get jadwal kontrol by patient ID
 app.get("/jadwal-kontrol/:patientId", async (req, res) => {
@@ -750,12 +773,10 @@ app.get("/jadwal-kontrol/:patientId", async (req, res) => {
     res.json(result.rows);
   } catch (error) {
     console.error("Error fetching jadwal kontrol:", error);
-    res
-      .status(500)
-      .json({
-        message: "Gagal mengambil jadwal kontrol",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Gagal mengambil jadwal kontrol",
+      error: error.message,
+    });
   }
 });
 
@@ -832,12 +853,10 @@ app.delete("/jadwal-kontrol/:id", async (req, res) => {
     res.json({ message: "Jadwal kontrol berhasil dihapus" });
   } catch (error) {
     console.error("Error deleting jadwal kontrol:", error);
-    res
-      .status(500)
-      .json({
-        message: "Gagal menghapus jadwal kontrol",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Gagal menghapus jadwal kontrol",
+      error: error.message,
+    });
   }
 });
 

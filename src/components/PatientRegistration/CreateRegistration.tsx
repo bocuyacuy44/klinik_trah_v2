@@ -48,6 +48,7 @@ const CreateRegistration: React.FC<CreateRegistrationProps> = ({
   });
 
   const [loading, setLoading] = useState(false);
+  const [jadwalLoading, setJadwalLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<"assessment" | "image" | "jadwal">(
     "assessment"
   );
@@ -96,7 +97,13 @@ const CreateRegistration: React.FC<CreateRegistrationProps> = ({
     tanggal_kontrol: "",
     keterangan: "",
   });
-  const [jadwalLoading, setJadwalLoading] = useState(false);
+  // State untuk modal full-screen image
+  const [showImageModal, setShowImageModal] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<string>("");
+  const [selectedImageTitle, setSelectedImageTitle] = useState<string>("");
+
+  // State untuk riwayat pasien
+  const [patientHistory, setPatientHistory] = useState<any[]>([]);
 
   // Mock data untuk dropdown
   const dokterOptions = [
@@ -145,6 +152,23 @@ const CreateRegistration: React.FC<CreateRegistrationProps> = ({
     loadJadwalKontrol();
   }, [patient.id]);
 
+  // Load riwayat pasien saat component mount
+  useEffect(() => {
+    const loadPatientHistory = async () => {
+      try {
+        console.log("Loading patient history for patient:", patient.id);
+        const historyData =
+          await registrationService.getRegistrationsByPatientId(patient.id);
+        console.log("Loaded history data:", historyData);
+        setPatientHistory(historyData);
+      } catch (error) {
+        console.error("Error loading patient history:", error);
+      }
+    };
+
+    loadPatientHistory();
+  }, [patient.id]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -166,7 +190,26 @@ const CreateRegistration: React.FC<CreateRegistrationProps> = ({
         formData.teleponPengantar
       );
       onShowNotification?.("success", "Pendaftaran pasien berhasil disimpan");
-      onRegistrationComplete();
+
+      // Reload riwayat pasien setelah pendaftaran berhasil
+      try {
+        const historyData =
+          await registrationService.getRegistrationsByPatientId(patient.id);
+        setPatientHistory(historyData);
+      } catch (error) {
+        console.error("Error reloading patient history:", error);
+      }
+
+      // Reset form ke default values (opsional)
+      setFormData({
+        ruangan: "poli-klinik-gigi",
+        dokter: "dr-kartini",
+        namaPengantar: patient.namaLengkap,
+        teleponPengantar: patient.telepon,
+      });
+
+      // Jangan panggil onRegistrationComplete() agar tidak pindah halaman
+      // onRegistrationComplete();
     } catch (error) {
       console.error("Error creating registration:", error);
       onShowNotification?.("error", "Gagal menyimpan pendaftaran pasien");
@@ -220,6 +263,278 @@ const CreateRegistration: React.FC<CreateRegistrationProps> = ({
       console.error("Error deleting jadwal kontrol:", error);
       onShowNotification?.("error", "Gagal menghapus jadwal kontrol");
     }
+  };
+
+  // Labels untuk setiap kolom gambar (sama dengan di PatientForm)
+  const imageLabels = [
+    "Gambar Muka Samping",
+    "Gambar Muka Depan",
+    "Gambar Gigi Depan",
+    "Gambar Gigi Belakang",
+    "Gambar Muka Samping 2",
+    "Gambar Muka Depan 2",
+    "Gambar Gigi Depan 2",
+    "Gambar Gigi Belakang 2",
+    "Gambar Muka Samping 3",
+    "Gambar Muka Depan 3",
+    "Gambar Gigi Depan 3",
+    "Gambar Gigi Belakang 3",
+    "Gambar Tambahan 1",
+    "Gambar Tambahan 2",
+    "Gambar Tambahan 3",
+    "Gambar Tambahan 4",
+    "Gambar Tambahan 5",
+  ];
+
+  // Fungsi untuk membuka image dalam full screen
+  const handleImageClick = (imageUrl: string, title: string) => {
+    setSelectedImage(imageUrl);
+    setSelectedImageTitle(title);
+    setShowImageModal(true);
+  };
+
+  // Komponen Modal Full-Screen Image
+  const ImageFullScreenModal = () => {
+    if (!showImageModal || !selectedImage) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center p-4 z-50">
+        <div className="relative max-w-full max-h-full">
+          {/* Close Button */}
+          <button
+            onClick={() => setShowImageModal(false)}
+            className="absolute top-4 right-4 z-10 bg-white bg-opacity-20 hover:bg-opacity-30 text-white rounded-full p-2 transition-all"
+          >
+            <svg
+              className="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+
+          {/* Image */}
+          <div className="flex flex-col items-center">
+            <img
+              src={selectedImage}
+              alt={selectedImageTitle}
+              className="max-w-full max-h-[80vh] object-contain rounded-lg shadow-2xl"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.src =
+                  "https://mhdc.co.id/wp-content/uploads//Rontgen-gigi-panoramik.jpg";
+                target.onerror = null;
+              }}
+            />
+            {/* Image Title */}
+            <div className="mt-4 bg-white bg-opacity-20 rounded-lg px-4 py-2">
+              <p className="text-white font-medium text-center">
+                {selectedImageTitle}
+              </p>
+              <p className="text-white text-sm text-center opacity-80">
+                Pasien: {patient.namaLengkap} | RM: {patient.rekamMedik}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Komponen untuk menampilkan konten tab image
+  const ImageTabContent = () => {
+    // Mengumpulkan semua gambar dari patient data
+    const patientImages = [];
+
+    // Mengambil gambar dari gambarKolom1 sampai gambarKolom17
+    for (let i = 1; i <= 17; i++) {
+      const imageKey = `gambarKolom${i}` as keyof typeof patient;
+      const imageUrl = patient[imageKey] as string;
+
+      if (imageUrl && imageUrl.trim()) {
+        patientImages.push({
+          url: imageUrl,
+          title: imageLabels[i - 1],
+          column: i,
+        });
+      }
+    }
+
+    // Tambahkan informed consent jika ada
+    if (patient.informedConsent && patient.informedConsent.trim()) {
+      patientImages.push({
+        url: patient.informedConsent,
+        title: "Informed Consent",
+        column: 0,
+      });
+    }
+
+    return (
+      <div className="p-6">
+        {patientImages.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg
+                className="w-8 h-8 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                />
+              </svg>
+            </div>
+            <p className="text-gray-500 text-lg font-medium mb-2">
+              Belum ada gambar tersimpan
+            </p>
+            <p className="text-gray-400 text-sm">
+              Gambar akan ditampilkan setelah diinputkan melalui form pasien
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {/* Header Information */}
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-lg font-semibold text-gray-900 mb-1">
+                    Gambar Pasien
+                  </h4>
+                  <p className="text-sm text-gray-600">
+                    Total: <strong>{patientImages.length} gambar</strong>{" "}
+                    tersimpan
+                  </p>
+                </div>
+                <div className="text-right text-sm text-gray-600">
+                  <div className="font-medium">{patient.namaLengkap}</div>
+                  <div>RM: {patient.rekamMedik}</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Images Grid */}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+              {patientImages.map((image, index) => (
+                <div
+                  key={index}
+                  className="group relative bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-200 cursor-pointer"
+                  onClick={() => handleImageClick(image.url, image.title)}
+                >
+                  {/* Image Container */}
+                  <div className="aspect-square relative">
+                    <img
+                      src={image.url}
+                      alt={image.title}
+                      className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.src =
+                          "https://mhdc.co.id/wp-content/uploads//Rontgen-gigi-panoramik.jpg";
+                        target.onerror = null;
+                      }}
+                    />
+
+                    {/* Hover Overlay */}
+                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-200 flex items-center justify-center">
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                        <div className="bg-white rounded-full p-2 shadow-lg">
+                          <svg
+                            className="w-5 h-5 text-gray-600"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"
+                            />
+                          </svg>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Column Number Badge (jika bukan informed consent) */}
+                    {image.column > 0 && (
+                      <div className="absolute top-2 left-2">
+                        <span className="bg-blue-600 text-white text-xs px-2 py-1 rounded-full font-medium">
+                          {image.column}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Informed Consent Badge */}
+                    {image.column === 0 && (
+                      <div className="absolute top-2 left-2">
+                        <span className="bg-green-600 text-white text-xs px-2 py-1 rounded-full font-medium">
+                          IC
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Image Title */}
+                  <div className="p-3">
+                    <h5 className="font-medium text-gray-900 text-sm leading-tight">
+                      {image.title}
+                    </h5>
+                    {image.column > 0 && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        Kolom {image.column}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Instructions */}
+            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+              <div className="flex items-start space-x-3">
+                <div className="flex-shrink-0">
+                  <svg
+                    className="w-5 h-5 text-blue-500"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                </div>
+                <div>
+                  <h6 className="font-medium text-gray-900 text-sm mb-1">
+                    Petunjuk Penggunaan:
+                  </h6>
+                  <ul className="text-xs text-gray-600 space-y-1">
+                    <li>• Klik pada gambar untuk melihat dalam ukuran penuh</li>
+                    <li>• Angka pada badge menunjukkan kolom gambar</li>
+                    <li>• "IC" menunjukkan gambar Informed Consent</li>
+                    <li>• Gambar diurutkan berdasarkan kolom dan jenis</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
   };
 
   // Komponen Modal Konfirmasi Hapus
@@ -704,13 +1019,7 @@ const CreateRegistration: React.FC<CreateRegistrationProps> = ({
           </div>
         );
       case "image":
-        return (
-          <div className="p-6">
-            <p className="text-gray-500 text-center py-8">
-              Konten Image akan ditampilkan di sini
-            </p>
-          </div>
-        );
+        return <ImageTabContent />;
       case "jadwal":
         return (
           <div className="p-6 space-y-6">
@@ -971,15 +1280,152 @@ const CreateRegistration: React.FC<CreateRegistrationProps> = ({
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {/* Kosong untuk saat ini */}
-                <tr>
-                  <td
-                    colSpan={8}
-                    className="px-6 py-12 text-center text-gray-500"
-                  >
-                    Belum ada riwayat kunjungan untuk pasien ini
-                  </td>
-                </tr>
+                {patientHistory.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={8}
+                      className="px-6 py-12 text-center text-gray-500"
+                    >
+                      Belum ada riwayat kunjungan untuk pasien ini
+                    </td>
+                  </tr>
+                ) : (
+                  patientHistory
+                    .sort(
+                      (a, b) =>
+                        new Date(a.tanggal).getTime() -
+                        new Date(b.tanggal).getTime()
+                    )
+                    .map((history, index) => {
+                      // Hitung nomor kunjungan berdasarkan tanggal yang berbeda
+                      const uniqueDates = [
+                        ...new Set(
+                          patientHistory
+                            .filter((_, idx) => idx <= index)
+                            .map((h) => new Date(h.tanggal).toDateString())
+                        ),
+                      ];
+                      const visitNumber = uniqueDates.length;
+
+                      const formattedDate = new Date(
+                        history.tanggal
+                      ).toLocaleDateString("id-ID", {
+                        weekday: "long",
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      });
+
+                      // Tentukan dokter yang ditampilkan
+                      const doctorName =
+                        history.dokter === "dr-kartini"
+                          ? "dr. Sri Kartini Kussudiardjo, Sp.A"
+                          : history.dokter || "-";
+
+                      // Tentukan nama poliklinik berdasarkan value
+                      const poliklinikName =
+                        history.ruangan === "poli-klinik-gigi"
+                          ? "Poli Klinik Gigi"
+                          : history.ruangan || "-";
+
+                      return (
+                        <tr key={history.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            {index + 1}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            <div className="flex flex-col">
+                              <span className="font-medium">
+                                {formattedDate}
+                              </span>
+                              <span className="text-xs text-gray-500">
+                                {history.idPendaftaran}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                              {poliklinikName}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {doctorName}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <button
+                              onClick={() => {
+                                // Buka tab assessment
+                                setActiveTab("assessment");
+                              }}
+                              className="flex items-center justify-center w-8 h-8 rounded-full bg-green-100 hover:bg-green-200 text-green-600 transition-colors"
+                              title="Lihat Assessment"
+                            >
+                              <svg
+                                className="w-4 h-4"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                                />
+                              </svg>
+                            </button>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <button
+                              onClick={() => {
+                                // Buka tab image
+                                setActiveTab("image");
+                              }}
+                              className="flex items-center justify-center w-8 h-8 rounded-full bg-purple-100 hover:bg-purple-200 text-purple-600 transition-colors"
+                              title="Lihat Gambar"
+                            >
+                              <svg
+                                className="w-4 h-4"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                                />
+                              </svg>
+                            </button>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <button
+                              className="flex items-center justify-center w-8 h-8 rounded-full bg-orange-100 hover:bg-orange-200 text-orange-600 transition-colors"
+                              title="Lihat Resep"
+                            >
+                              <svg
+                                className="w-4 h-4"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"
+                                />
+                              </svg>
+                            </button>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            -
+                          </td>
+                        </tr>
+                      );
+                    })
+                )}
               </tbody>
             </table>
           </div>
@@ -1020,6 +1466,9 @@ const CreateRegistration: React.FC<CreateRegistrationProps> = ({
 
       {/* Modal Konfirmasi Hapus */}
       <DeleteConfirmModal />
+
+      {/* Modal Full Screen Image */}
+      <ImageFullScreenModal />
     </div>
   );
 };
