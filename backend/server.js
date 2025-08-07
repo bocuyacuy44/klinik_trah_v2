@@ -882,7 +882,7 @@ app.get("/create-assessment-table", async (req, res) => {
       CREATE TABLE riwayat_assessment (
         id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
         patient_id UUID REFERENCES patients(id) ON DELETE CASCADE,
-        dokter VARCHAR(100) DEFAULT 'dr. Kartini',
+        dokter VARCHAR(100) DEFAULT 'drg. Moehammad Fahrul Rozi, Sp.Ort',
         assessment TEXT NOT NULL,
         waktu TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
         
@@ -1008,7 +1008,7 @@ app.post("/assessments", async (req, res) => {
         RETURNING *`,
         [
           patient_id,
-          "dr. Kartini", // Default doctor
+          "drg. Moehammad Fahrul Rozi, Sp.Ort", // Default doctor
           tindakan.nama, // Assessment field contains treatment name
           formData.keluhanUtama,
           formData.alergiObat,
