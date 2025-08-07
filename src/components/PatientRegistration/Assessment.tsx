@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Search, Plus, Save, RotateCcw } from "lucide-react";
+import { Search, Plus, Save, RotateCcw, DollarSign } from "lucide-react";
 import { Patient } from "../../types";
 import { assessmentService } from "../../services/assessmentService";
 
@@ -81,12 +81,14 @@ const Assessment: React.FC<AssessmentProps> = ({ patient }) => {
   const [showICD9Modal, setShowICD9Modal] = useState(false);
   const [showTindakanModal, setShowTindakanModal] = useState(false);
   const [showResepModal, setShowResepModal] = useState(false);
+  const [showCaraBayarModal, setShowCaraBayarModal] = useState(false);
 
   // State untuk data yang dipilih
   const [selectedICD10, setSelectedICD10] = useState<ICD10Item[]>([]);
   const [selectedICD9, setSelectedICD9] = useState<ICD9Item[]>([]);
   const [selectedTindakan, setSelectedTindakan] = useState<TindakanItem[]>([]);
   const [selectedResep, setSelectedResep] = useState<ResepItem[]>([]);
+  const [caraBayar, setCaraBayar] = useState<string>("Cash");
 
   // State untuk form modal
   const [icd10Search, setIcd10Search] = useState("");
@@ -177,16 +179,30 @@ const Assessment: React.FC<AssessmentProps> = ({ patient }) => {
     });
   };
 
-  const handleAddICD10 = (item: ICD10Item) => {
-    if (!selectedICD10.find((selected) => selected.kode === item.kode)) {
-      setSelectedICD10((prev) => [...prev, item]);
-    }
+  const handleToggleICD10 = (item: ICD10Item) => {
+    setSelectedICD10((prev) => {
+      const exists = prev.find((selected) => selected.kode === item.kode);
+      if (exists) {
+        // Remove item if already selected
+        return prev.filter((selected) => selected.kode !== item.kode);
+      } else {
+        // Add item if not selected
+        return [...prev, item];
+      }
+    });
   };
 
-  const handleAddICD9 = (item: ICD9Item) => {
-    if (!selectedICD9.find((selected) => selected.kode === item.kode)) {
-      setSelectedICD9((prev) => [...prev, item]);
-    }
+  const handleToggleICD9 = (item: ICD9Item) => {
+    setSelectedICD9((prev) => {
+      const exists = prev.find((selected) => selected.kode === item.kode);
+      if (exists) {
+        // Remove item if already selected
+        return prev.filter((selected) => selected.kode !== item.kode);
+      } else {
+        // Add item if not selected
+        return [...prev, item];
+      }
+    });
   };
 
   const handleAddTindakan = () => {
@@ -245,6 +261,7 @@ const Assessment: React.FC<AssessmentProps> = ({ patient }) => {
         selectedICD9,
         selectedTindakan,
         selectedResep,
+        caraBayar,
       };
 
       // Save to database
@@ -286,6 +303,7 @@ const Assessment: React.FC<AssessmentProps> = ({ patient }) => {
     setSelectedICD9([]);
     setSelectedTindakan([]);
     setSelectedResep([]);
+    setCaraBayar("Cash");
 
     // Reset form modal states
     setTindakanForm({ nama: "", jumlah: 1, biaya: "" });
@@ -856,7 +874,15 @@ const Assessment: React.FC<AssessmentProps> = ({ patient }) => {
                         </span>
                       </div>
                     </td>
-                    <td className="px-6 py-4"></td>
+                    <td className="px-6 py-4">
+                      <button
+                        onClick={() => setShowCaraBayarModal(true)}
+                        className="text-green-600 hover:text-green-800 transition-colors"
+                        title="Pilih cara bayar"
+                      >
+                        <DollarSign className="w-5 h-5" />
+                      </button>
+                    </td>
                   </tr>
                   <tr>
                     <td
@@ -866,7 +892,10 @@ const Assessment: React.FC<AssessmentProps> = ({ patient }) => {
                       Cara Bayar
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      Cash
+                      <div className="flex items-center space-x-2">
+                        <span>{caraBayar}</span>
+                        
+                      </div>
                     </td>
                     <td className="px-6 py-4"></td>
                   </tr>
@@ -1014,7 +1043,7 @@ const Assessment: React.FC<AssessmentProps> = ({ patient }) => {
                           checked={selectedICD10.some(
                             (selected) => selected.kode === item.kode
                           )}
-                          onChange={() => handleAddICD10(item)}
+                          onChange={() => handleToggleICD10(item)}
                           className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                         />
                       </td>
@@ -1092,7 +1121,7 @@ const Assessment: React.FC<AssessmentProps> = ({ patient }) => {
                           checked={selectedICD9.some(
                             (selected) => selected.kode === item.kode
                           )}
-                          onChange={() => handleAddICD9(item)}
+                          onChange={() => handleToggleICD9(item)}
                           className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                         />
                       </td>
@@ -1285,6 +1314,78 @@ const Assessment: React.FC<AssessmentProps> = ({ patient }) => {
                   !resepForm.nama || !resepForm.jumlah || !resepForm.signa
                 }
                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Simpan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Cara Bayar */}
+      {showCaraBayarModal && (
+        <div className="fixed -inset-10 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">
+                Pilih Cara Bayar
+              </h3>
+              <button
+                onClick={() => setShowCaraBayarModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center space-x-3">
+                <input
+                  type="radio"
+                  id="cash"
+                  name="caraBayar"
+                  value="Cash"
+                  checked={caraBayar === "Cash"}
+                  onChange={(e) => setCaraBayar(e.target.value)}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                />
+                <label
+                  htmlFor="cash"
+                  className="text-sm font-medium text-gray-900 cursor-pointer"
+                >
+                  Cash
+                </label>
+              </div>
+
+              <div className="flex items-center space-x-3">
+                <input
+                  type="radio"
+                  id="transfer"
+                  name="caraBayar"
+                  value="Transfer"
+                  checked={caraBayar === "Transfer"}
+                  onChange={(e) => setCaraBayar(e.target.value)}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                />
+                <label
+                  htmlFor="transfer"
+                  className="text-sm font-medium text-gray-900 cursor-pointer"
+                >
+                  Transfer
+                </label>
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-3 mt-6">
+              <button
+                onClick={() => setShowCaraBayarModal(false)}
+                className="px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500"
+              >
+                Batal
+              </button>
+              <button
+                onClick={() => setShowCaraBayarModal(false)}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 Simpan
               </button>

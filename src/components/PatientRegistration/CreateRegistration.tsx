@@ -7,6 +7,7 @@ import { Patient } from "../../types";
 import Breadcrumb from "../Layout/Breadcrumb";
 import Assessment from "./Assessment";
 import { registrationService } from "../../services/registrationService";
+import { assessmentService } from "../../services/assessmentService";
 import {
   jadwalKontrolService,
   JadwalKontrol,
@@ -105,6 +106,7 @@ const CreateRegistration: React.FC<CreateRegistrationProps> = ({
 
   // State untuk riwayat pasien
   const [patientHistory, setPatientHistory] = useState<any[]>([]);
+  const [patientAssessments, setPatientAssessments] = useState<any[]>([]);
 
   // Mock data untuk dropdown
   const dokterOptions = [
@@ -167,8 +169,80 @@ const CreateRegistration: React.FC<CreateRegistrationProps> = ({
       }
     };
 
+    const loadPatientAssessments = async () => {
+      try {
+        console.log("Loading patient assessments for patient:", patient.id);
+        // Create table first if it doesn't exist
+        await assessmentService.createAssessmentTable();
+        const assessmentData = await assessmentService.getAssessmentHistory(
+          patient.id
+        );
+        console.log("Loaded assessment data:", assessmentData);
+        setPatientAssessments(assessmentData);
+      } catch (error) {
+        console.error("Error loading patient assessments:", error);
+      }
+    };
+
     loadPatientHistory();
+    loadPatientAssessments();
   }, [patient.id]);
+
+  // Fungsi untuk mendapatkan diagnosa berdasarkan tanggal registrasi
+  const getDiagnosisForDate = (registrationDate: string) => {
+    // Cari assessment yang dibuat pada tanggal yang sama atau setelah tanggal registrasi
+    const registrationDateObj = new Date(registrationDate);
+
+    // Filter assessments untuk tanggal yang relevan
+    const relevantAssessments = patientAssessments.filter((assessment) => {
+      const assessmentDate = new Date(
+        assessment.waktu || assessment.created_at
+      );
+      const registrationDateOnly = new Date(
+        registrationDateObj.getFullYear(),
+        registrationDateObj.getMonth(),
+        registrationDateObj.getDate()
+      );
+      const assessmentDateOnly = new Date(
+        assessmentDate.getFullYear(),
+        assessmentDate.getMonth(),
+        assessmentDate.getDate()
+      );
+
+      return assessmentDateOnly.getTime() >= registrationDateOnly.getTime();
+    });
+
+    if (relevantAssessments.length === 0) {
+      return "-";
+    }
+
+    // Ambil assessment terbaru dan ekstrak diagnosa ICD10
+    const latestAssessment = relevantAssessments.sort(
+      (a, b) =>
+        new Date(b.waktu || b.created_at).getTime() -
+        new Date(a.waktu || a.created_at).getTime()
+    )[0];
+
+    if (latestAssessment && latestAssessment.selected_icd10) {
+      try {
+        const icd10Data =
+          typeof latestAssessment.selected_icd10 === "string"
+            ? JSON.parse(latestAssessment.selected_icd10)
+            : latestAssessment.selected_icd10;
+
+        if (Array.isArray(icd10Data) && icd10Data.length > 0) {
+          // Gabungkan semua diagnosa dengan format: "Kode - Nama"
+          return icd10Data
+            .map((item) => `${item.kode} - ${item.nama}`)
+            .join(", ");
+        }
+      } catch (error) {
+        console.error("Error parsing ICD10 data:", error);
+      }
+    }
+
+    return "-";
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -197,6 +271,12 @@ const CreateRegistration: React.FC<CreateRegistrationProps> = ({
         const historyData =
           await registrationService.getRegistrationsByPatientId(patient.id);
         setPatientHistory(historyData);
+
+        // Reload assessment data juga
+        const assessmentData = await assessmentService.getAssessmentHistory(
+          patient.id
+        );
+        setPatientAssessments(assessmentData);
       } catch (error) {
         console.error("Error reloading patient history:", error);
       }
@@ -1621,8 +1701,12 @@ const CreateRegistration: React.FC<CreateRegistrationProps> = ({
                               </svg>
                             </button>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            -
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            <div className="max-w-xs">
+                              <span className="text-xs">
+                                {getDiagnosisForDate(history.tanggal)}
+                              </span>
+                            </div>
                           </td>
                         </tr>
                       );
@@ -1640,13 +1724,13 @@ const CreateRegistration: React.FC<CreateRegistrationProps> = ({
           <div className="flex space-x-1 border-b border-gray-200">
             <TabButton
               id="assessment"
-              label="Tab Assesmen"
+              label="Assesment"
               isActive={activeTab === "assessment"}
               onClick={setActiveTab}
             />
             <TabButton
               id="image"
-              label="Tab Image"
+              label="Image"
               isActive={activeTab === "image"}
               onClick={setActiveTab}
             />
@@ -1658,7 +1742,7 @@ const CreateRegistration: React.FC<CreateRegistrationProps> = ({
             />
             <TabButton
               id="jadwal"
-              label="Tab Jadwal Kontrol"
+              label="Jadwal Kontrol"
               isActive={activeTab === "jadwal"}
               onClick={setActiveTab}
             />

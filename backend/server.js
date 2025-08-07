@@ -910,6 +910,7 @@ app.get("/create-assessment-table", async (req, res) => {
         tindakan_jumlah INTEGER,
         tindakan_biaya DECIMAL(15,2),
         tindakan_total DECIMAL(15,2),
+        cara_bayar VARCHAR(20) DEFAULT 'Cash',
         
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
@@ -982,6 +983,7 @@ app.post("/assessments", async (req, res) => {
       selectedICD9,
       selectedTindakan,
       selectedResep,
+      caraBayar = "Cash",
     } = req.body;
 
     if (!patient_id) {
@@ -1003,8 +1005,8 @@ app.post("/assessments", async (req, res) => {
           patient_id, dokter, assessment, keluhan_utama, alergi_obat, alergi_obat_detail,
           alergi_makanan, alergi_makanan_detail, tekanan_darah, penyakit_jantung,
           hemofilia, hepatitis, gastritis, selected_icd10, selected_icd9, selected_resep,
-          tindakan_nama, tindakan_jumlah, tindakan_biaya, tindakan_total
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
+          tindakan_nama, tindakan_jumlah, tindakan_biaya, tindakan_total, cara_bayar
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
         RETURNING *`,
         [
           patient_id,
@@ -1027,6 +1029,7 @@ app.post("/assessments", async (req, res) => {
           tindakan.jumlah,
           tindakan.biaya,
           tindakan.total,
+          caraBayar,
         ]
       );
       results.push(result.rows[0]);
@@ -1049,8 +1052,14 @@ app.post("/assessments", async (req, res) => {
 app.put("/assessments/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const { formData, selectedICD10, selectedICD9, selectedResep, tindakan } =
-      req.body;
+    const {
+      formData,
+      selectedICD10,
+      selectedICD9,
+      selectedResep,
+      tindakan,
+      caraBayar = "Cash",
+    } = req.body;
 
     const result = await pool.query(
       `UPDATE riwayat_assessment 
@@ -1058,8 +1067,8 @@ app.put("/assessments/:id", async (req, res) => {
            alergi_makanan = $5, alergi_makanan_detail = $6, tekanan_darah = $7, penyakit_jantung = $8,
            hemofilia = $9, hepatitis = $10, gastritis = $11, selected_icd10 = $12, selected_icd9 = $13, 
            selected_resep = $14, tindakan_nama = $15, tindakan_jumlah = $16, tindakan_biaya = $17, 
-           tindakan_total = $18, updated_at = CURRENT_TIMESTAMP
-       WHERE id = $19
+           tindakan_total = $18, cara_bayar = $19, updated_at = CURRENT_TIMESTAMP
+       WHERE id = $20
        RETURNING *`,
       [
         tindakan.nama, // Assessment field
@@ -1080,6 +1089,7 @@ app.put("/assessments/:id", async (req, res) => {
         tindakan.jumlah,
         tindakan.biaya,
         tindakan.total,
+        caraBayar,
         id,
       ]
     );
