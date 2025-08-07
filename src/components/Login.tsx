@@ -63,7 +63,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             alt="Logo Klinik"
             className="w-16 h-16 rounded-full object-cover mx-auto mb-4"
           />
-          <h1 className="text-2xl font-bold text-gray-900">Klinik Dental Care</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Dental Care Garut</h1>
           <p className="text-gray-600 mt-2">Harap login untuk mengakses sistem.</p>
         </div>
 

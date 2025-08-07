@@ -470,12 +470,10 @@ app.get("/registrations/patient/:patientId", async (req, res) => {
     res.json(result.rows);
   } catch (error) {
     console.error("Error fetching patient registrations:", error);
-    res
-      .status(500)
-      .json({
-        message: "Failed to fetch patient registrations",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Failed to fetch patient registrations",
+      error: error.message,
+    });
   }
 });
 
@@ -855,6 +853,269 @@ app.delete("/jadwal-kontrol/:id", async (req, res) => {
     console.error("Error deleting jadwal kontrol:", error);
     res.status(500).json({
       message: "Gagal menghapus jadwal kontrol",
+      error: error.message,
+    });
+  }
+});
+
+// ==================== ASSESSMENT ENDPOINTS ====================
+
+// Create assessment table if not exists
+app.get("/create-assessment-table", async (req, res) => {
+  try {
+    // Check if table already exists
+    const tableCheck = await pool.query(`
+      SELECT column_name, data_type, is_nullable
+      FROM information_schema.columns 
+      WHERE table_name = 'riwayat_assessment' 
+      ORDER BY ordinal_position
+    `);
+
+    if (tableCheck.rows.length > 0) {
+      return res.json({
+        message: "Tabel riwayat_assessment sudah ada",
+      });
+    }
+
+    // Create new table
+    await pool.query(`
+      CREATE TABLE riwayat_assessment (
+        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+        patient_id UUID REFERENCES patients(id) ON DELETE CASCADE,
+        dokter VARCHAR(100) DEFAULT 'dr. Kartini',
+        assessment TEXT NOT NULL,
+        waktu TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        
+        -- Anamnesis data
+        keluhan_utama TEXT,
+        alergi_obat VARCHAR(10) DEFAULT 'tidak',
+        alergi_obat_detail TEXT,
+        alergi_makanan VARCHAR(10) DEFAULT 'tidak', 
+        alergi_makanan_detail TEXT,
+        
+        -- Medical History
+        tekanan_darah VARCHAR(20),
+        penyakit_jantung VARCHAR(10) DEFAULT 'tidak',
+        hemofilia VARCHAR(10) DEFAULT 'tidak',
+        hepatitis VARCHAR(10) DEFAULT 'tidak',
+        gastritis VARCHAR(10) DEFAULT 'tidak',
+        
+        -- ICD and Procedures (stored as JSON)
+        selected_icd10 JSONB,
+        selected_icd9 JSONB,
+        selected_resep JSONB,
+        
+        -- Tindakan details
+        tindakan_nama VARCHAR(255),
+        tindakan_jumlah INTEGER,
+        tindakan_biaya DECIMAL(15,2),
+        tindakan_total DECIMAL(15,2),
+        
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    res.json({
+      message: "Tabel riwayat_assessment berhasil dibuat",
+    });
+  } catch (error) {
+    console.error("Error creating riwayat_assessment table:", error);
+    res.status(500).json({
+      message: "Gagal membuat tabel riwayat_assessment",
+      error: error.message,
+    });
+  }
+});
+
+// Get assessment history by patient ID
+app.get("/assessments/:patientId", async (req, res) => {
+  try {
+    const { patientId } = req.params;
+    const result = await pool.query(
+      `SELECT id, patient_id, dokter, assessment, waktu 
+       FROM riwayat_assessment 
+       WHERE patient_id = $1 
+       ORDER BY waktu DESC`,
+      [patientId]
+    );
+    res.json(result.rows);
+  } catch (error) {
+    console.error("Error fetching assessment history:", error);
+    res.status(500).json({
+      message: "Gagal mengambil riwayat assessment",
+      error: error.message,
+    });
+  }
+});
+
+// Get full assessment details by ID
+app.get("/assessments/detail/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query(
+      "SELECT * FROM riwayat_assessment WHERE id = $1",
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "Assessment tidak ditemukan" });
+    }
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error("Error fetching assessment details:", error);
+    res.status(500).json({
+      message: "Gagal mengambil detail assessment",
+      error: error.message,
+    });
+  }
+});
+
+// Create assessment (multiple records for multiple tindakan)
+app.post("/assessments", async (req, res) => {
+  try {
+    const {
+      patient_id,
+      formData,
+      selectedICD10,
+      selectedICD9,
+      selectedTindakan,
+      selectedResep,
+    } = req.body;
+
+    if (!patient_id) {
+      return res.status(400).json({ message: "Patient ID harus diisi" });
+    }
+
+    if (!selectedTindakan || selectedTindakan.length === 0) {
+      return res
+        .status(400)
+        .json({ message: "Minimal satu tindakan harus diisi" });
+    }
+
+    const results = [];
+
+    // Insert one record for each tindakan
+    for (const tindakan of selectedTindakan) {
+      const result = await pool.query(
+        `INSERT INTO riwayat_assessment (
+          patient_id, dokter, assessment, keluhan_utama, alergi_obat, alergi_obat_detail,
+          alergi_makanan, alergi_makanan_detail, tekanan_darah, penyakit_jantung,
+          hemofilia, hepatitis, gastritis, selected_icd10, selected_icd9, selected_resep,
+          tindakan_nama, tindakan_jumlah, tindakan_biaya, tindakan_total
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
+        RETURNING *`,
+        [
+          patient_id,
+          "dr. Kartini", // Default doctor
+          tindakan.nama, // Assessment field contains treatment name
+          formData.keluhanUtama,
+          formData.alergiObat,
+          formData.alergiObatDetail,
+          formData.alergiMakanan,
+          formData.alergiMakananDetail,
+          formData.tekananDarah,
+          formData.penyakitJantung,
+          formData.hemofilia,
+          formData.hepatitis,
+          formData.gastritis,
+          JSON.stringify(selectedICD10),
+          JSON.stringify(selectedICD9),
+          JSON.stringify(selectedResep),
+          tindakan.nama,
+          tindakan.jumlah,
+          tindakan.biaya,
+          tindakan.total,
+        ]
+      );
+      results.push(result.rows[0]);
+    }
+
+    res.json({
+      message: `${results.length} assessment berhasil disimpan`,
+      data: results,
+    });
+  } catch (error) {
+    console.error("Error creating assessment:", error);
+    res.status(500).json({
+      message: "Gagal menyimpan assessment",
+      error: error.message,
+    });
+  }
+});
+
+// Update assessment
+app.put("/assessments/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { formData, selectedICD10, selectedICD9, selectedResep, tindakan } =
+      req.body;
+
+    const result = await pool.query(
+      `UPDATE riwayat_assessment 
+       SET assessment = $1, keluhan_utama = $2, alergi_obat = $3, alergi_obat_detail = $4,
+           alergi_makanan = $5, alergi_makanan_detail = $6, tekanan_darah = $7, penyakit_jantung = $8,
+           hemofilia = $9, hepatitis = $10, gastritis = $11, selected_icd10 = $12, selected_icd9 = $13, 
+           selected_resep = $14, tindakan_nama = $15, tindakan_jumlah = $16, tindakan_biaya = $17, 
+           tindakan_total = $18, updated_at = CURRENT_TIMESTAMP
+       WHERE id = $19
+       RETURNING *`,
+      [
+        tindakan.nama, // Assessment field
+        formData.keluhanUtama,
+        formData.alergiObat,
+        formData.alergiObatDetail,
+        formData.alergiMakanan,
+        formData.alergiMakananDetail,
+        formData.tekananDarah,
+        formData.penyakitJantung,
+        formData.hemofilia,
+        formData.hepatitis,
+        formData.gastritis,
+        JSON.stringify(selectedICD10),
+        JSON.stringify(selectedICD9),
+        JSON.stringify(selectedResep),
+        tindakan.nama,
+        tindakan.jumlah,
+        tindakan.biaya,
+        tindakan.total,
+        id,
+      ]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "Assessment tidak ditemukan" });
+    }
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error("Error updating assessment:", error);
+    res.status(500).json({
+      message: "Gagal memperbarui assessment",
+      error: error.message,
+    });
+  }
+});
+
+// Delete assessment
+app.delete("/assessments/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query(
+      "DELETE FROM riwayat_assessment WHERE id = $1 RETURNING *",
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "Assessment tidak ditemukan" });
+    }
+
+    res.json({ message: "Assessment berhasil dihapus" });
+  } catch (error) {
+    console.error("Error deleting assessment:", error);
+    res.status(500).json({
+      message: "Gagal menghapus assessment",
       error: error.message,
     });
   }

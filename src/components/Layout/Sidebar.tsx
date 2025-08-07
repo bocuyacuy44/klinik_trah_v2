@@ -55,16 +55,16 @@ const Sidebar: React.FC<SidebarProps> = ({ activeMenu, onMenuClick, user }) => {
   return (
     <div className="w-64 bg-white border-r border-gray-200 h-screen overflow-y-auto">
       <div className="p-6">
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-1">
           {/* Ganti ikon dengan gambar logo */}
           <img
             src="/assets/img/logo.png"
             alt="Logo Klinik"
-            className="w-10 h-10 center-lg object-cover"
+            className="w-14 h-14 center-lg object-cover"
           />
           <div>
             <h1 className="text-lg font-bold text-gray-900">
-              KLINIK DENTAL CARE
+              DENTAL CARE GARUT
             </h1>
           </div>
         </div>

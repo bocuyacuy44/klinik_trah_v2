@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Search, Plus, Save, RotateCcw } from "lucide-react";
 import { Patient } from "../../types";
+import { assessmentService } from "../../services/assessmentService";
 
 interface AssessmentProps {
   patient: Patient;
@@ -39,20 +40,11 @@ interface ResepItem {
 
 const Assessment: React.FC<AssessmentProps> = ({ patient }) => {
   // State untuk riwayat assessment
-  const [assessmentHistory] = useState<AssessmentHistory[]>([
-    {
-      id: "1",
-      waktu: "15/01/25 - 10:30",
-      dokter: "dr. Kartini",
-      assessment: "Pemeriksaan rutin",
-    },
-    {
-      id: "2",
-      waktu: "10/01/25 - 14:15",
-      dokter: "dr. Budi",
-      assessment: "Scaling gigi",
-    },
-  ]);
+  const [assessmentHistory, setAssessmentHistory] = useState<
+    AssessmentHistory[]
+  >([]);
+  const [loadingHistory, setLoadingHistory] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   // State untuk form assessment
   const [formData, setFormData] = useState({
@@ -128,6 +120,34 @@ const Assessment: React.FC<AssessmentProps> = ({ patient }) => {
       item.nama.toLowerCase().includes(icd9Search.toLowerCase())
   );
 
+  // Load assessment history when patient changes
+  useEffect(() => {
+    loadAssessmentHistory();
+  }, [patient.id]);
+
+  const loadAssessmentHistory = async () => {
+    try {
+      setLoadingHistory(true);
+      // Create table first if it doesn't exist
+      await assessmentService.createAssessmentTable();
+      const history = await assessmentService.getAssessmentHistory(patient.id);
+
+      // Format data for display
+      const formattedHistory = history.map((item) => ({
+        id: item.id,
+        waktu: new Date(item.waktu).toLocaleString("id-ID"),
+        dokter: item.dokter,
+        assessment: item.assessment,
+      }));
+
+      setAssessmentHistory(formattedHistory);
+    } catch (error) {
+      console.error("Error loading assessment history:", error);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => {
       const newData = { ...prev, [field]: value };
@@ -200,16 +220,40 @@ const Assessment: React.FC<AssessmentProps> = ({ patient }) => {
     return selectedTindakan.reduce((sum, item) => sum + item.total, 0);
   };
 
-  const handleSaveAssessment = () => {
-    // TODO: Implement save functionality
-    console.log("Saving assessment:", {
-      formData,
-      selectedICD10,
-      selectedICD9,
-      selectedTindakan,
-      selectedResep,
-    });
-    alert("Assessment berhasil disimpan!");
+  const handleSaveAssessment = async () => {
+    try {
+      setSaving(true);
+
+      // Prepare assessment data
+      const assessmentData = {
+        patient_id: patient.id,
+        formData,
+        selectedICD10,
+        selectedICD9,
+        selectedTindakan,
+        selectedResep,
+      };
+
+      // Save to database
+      await assessmentService.createAssessment(assessmentData);
+
+      // Reload assessment history to show the new entry
+      await loadAssessmentHistory();
+
+      // Reset form after successful save
+      handleResetForm();
+
+      alert("Assessment berhasil disimpan!");
+    } catch (error) {
+      console.error("Error saving assessment:", error);
+      alert(
+        `Gagal menyimpan assessment: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleResetForm = () => {
@@ -885,10 +929,15 @@ const Assessment: React.FC<AssessmentProps> = ({ patient }) => {
         </button>
         <button
           onClick={handleSaveAssessment}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center space-x-2"
+          disabled={saving}
+          className={`px-4 py-2 ${
+            saving
+              ? "bg-blue-400 cursor-not-allowed"
+              : "bg-blue-600 hover:bg-blue-700"
+          } text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center space-x-2`}
         >
           <Save className="w-4 h-4" />
-          <span>Simpan</span>
+          <span>{saving ? "Menyimpan..." : "Simpan"}</span>
         </button>
       </div>
 
