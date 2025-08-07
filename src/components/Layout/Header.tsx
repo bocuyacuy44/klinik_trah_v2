@@ -10,11 +10,6 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout }) => {
   return (
     <header className="bg-white border-b border-gray-200 h-16 flex items-center justify-between px-6">
       <div className="flex items-center space-x-4">
-        <nav className="text-sm text-gray-500">
-          <span>Dashboard</span>
-          <span className="mx-2">→</span>
-          <span className="text-gray-900">Pendaftaran Pasien</span>
-        </nav>
       </div>
       
       <div className="flex items-center space-x-4">
