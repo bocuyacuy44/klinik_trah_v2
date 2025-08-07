@@ -43,16 +43,16 @@ const CreateRegistration: React.FC<CreateRegistrationProps> = ({
 }) => {
   const [formData, setFormData] = useState({
     ruangan: "poli-klinik-gigi",
-    dokter: "dr-kartini",
+    dokter: "drg-fahrul",
     namaPengantar: patient.namaLengkap,
     teleponPengantar: patient.telepon,
   });
 
   const [loading, setLoading] = useState(false);
   const [jadwalLoading, setJadwalLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<"assessment" | "image" | "jadwal">(
-    "assessment"
-  );
+  const [activeTab, setActiveTab] = useState<
+    "assessment" | "image" | "lembarPersetujuan" | "jadwal"
+  >("assessment");
 
   // State untuk modal detail jadwal
   const [showJadwalModal, setShowJadwalModal] = useState(false);
@@ -108,7 +108,7 @@ const CreateRegistration: React.FC<CreateRegistrationProps> = ({
 
   // Mock data untuk dropdown
   const dokterOptions = [
-    { value: "dr-kartini", label: "dr. Sri Kartini Kussudiardjo, Sp.A" },
+    { value: "drg-fahrul", label: "drg. Moehammad Fahrul Rozi, Sp.Ort" },
   ];
 
   const poliklinikOptions = [
@@ -204,7 +204,7 @@ const CreateRegistration: React.FC<CreateRegistrationProps> = ({
       // Reset form ke default values (opsional)
       setFormData({
         ruangan: "poli-klinik-gigi",
-        dokter: "dr-kartini",
+        dokter: "drg-fahrul",
         namaPengantar: patient.namaLengkap,
         teleponPengantar: patient.telepon,
       });
@@ -349,9 +349,9 @@ const CreateRegistration: React.FC<CreateRegistrationProps> = ({
     );
   };
 
-  // Komponen untuk menampilkan konten tab image
+  // Komponen untuk menampilkan konten tab image (tanpa informed consent)
   const ImageTabContent = () => {
-    // Mengumpulkan semua gambar dari patient data
+    // Mengumpulkan semua gambar dari patient data, kecuali informed consent
     const patientImages = [];
 
     // Mengambil gambar dari gambarKolom1 sampai gambarKolom17
@@ -368,14 +368,7 @@ const CreateRegistration: React.FC<CreateRegistrationProps> = ({
       }
     }
 
-    // Tambahkan informed consent jika ada
-    if (patient.informedConsent && patient.informedConsent.trim()) {
-      patientImages.push({
-        url: patient.informedConsent,
-        title: "Informed Consent",
-        column: 0,
-      });
-    }
+    // Tidak menambahkan informed consent di sini lagi - sudah dipindah ke tab terpisah
 
     return (
       <div className="p-6">
@@ -467,23 +460,12 @@ const CreateRegistration: React.FC<CreateRegistrationProps> = ({
                       </div>
                     </div>
 
-                    {/* Column Number Badge (jika bukan informed consent) */}
-                    {image.column > 0 && (
-                      <div className="absolute top-2 left-2">
-                        <span className="bg-blue-600 text-white text-xs px-2 py-1 rounded-full font-medium">
-                          {image.column}
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Informed Consent Badge */}
-                    {image.column === 0 && (
-                      <div className="absolute top-2 left-2">
-                        <span className="bg-green-600 text-white text-xs px-2 py-1 rounded-full font-medium">
-                          IC
-                        </span>
-                      </div>
-                    )}
+                    {/* Column Number Badge */}
+                    <div className="absolute top-2 left-2">
+                      <span className="bg-blue-600 text-white text-xs px-2 py-1 rounded-full font-medium">
+                        {image.column}
+                      </span>
+                    </div>
                   </div>
 
                   {/* Image Title */}
@@ -491,11 +473,9 @@ const CreateRegistration: React.FC<CreateRegistrationProps> = ({
                     <h5 className="font-medium text-gray-900 text-sm leading-tight">
                       {image.title}
                     </h5>
-                    {image.column > 0 && (
-                      <p className="text-xs text-gray-500 mt-1">
-                        Kolom {image.column}
-                      </p>
-                    )}
+                    <p className="text-xs text-gray-500 mt-1">
+                      Kolom {image.column}
+                    </p>
                   </div>
                 </div>
               ))}
@@ -526,14 +506,235 @@ const CreateRegistration: React.FC<CreateRegistrationProps> = ({
                   <ul className="text-xs text-gray-600 space-y-1">
                     <li>• Klik pada gambar untuk melihat dalam ukuran penuh</li>
                     <li>• Angka pada badge menunjukkan kolom gambar</li>
-                    <li>• "IC" menunjukkan gambar Informed Consent</li>
-                    <li>• Gambar diurutkan berdasarkan kolom dan jenis</li>
+                    <li>• Gambar diurutkan berdasarkan kolom</li>
+                    <li>
+                      • Untuk melihat lembar persetujuan, gunakan tab "Lembar
+                      Persetujuan"
+                    </li>
                   </ul>
                 </div>
               </div>
             </div>
           </div>
         )}
+      </div>
+    );
+  };
+
+  // Komponen untuk menampilkan konten tab lembar persetujuan (informed consent)
+  const LembarPersetujuanTabContent = () => {
+    // Cek apakah ada informed consent
+    const hasInformedConsent =
+      patient.informedConsent && patient.informedConsent.trim();
+
+    if (!hasInformedConsent) {
+      return (
+        <div className="p-6">
+          <div className="text-center py-12">
+            <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg
+                className="w-8 h-8 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                />
+              </svg>
+            </div>
+            <p className="text-gray-500 text-lg font-medium mb-2">
+              Belum ada lembar persetujuan tersimpan
+            </p>
+            <p className="text-gray-400 text-sm">
+              Lembar persetujuan (informed consent) akan ditampilkan setelah
+              diinputkan melalui form pasien
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="p-6">
+        <div className="space-y-6">
+          {/* Header Information */}
+          <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-lg border border-green-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="text-lg font-semibold text-gray-900 mb-1">
+                  Lembar Persetujuan (Informed Consent)
+                </h4>
+                <p className="text-sm text-gray-600">
+                  Dokumen persetujuan tindakan medis dari pasien
+                </p>
+              </div>
+              <div className="text-right text-sm text-gray-600">
+                <div className="font-medium">{patient.namaLengkap}</div>
+                <div>RM: {patient.rekamMedik}</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Informed Consent Image */}
+          <div className="flex justify-center">
+            <div
+              className="group relative bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-200 cursor-pointer max-w-lg"
+              onClick={() =>
+                handleImageClick(patient.informedConsent, "Informed Consent")
+              }
+            >
+              {/* Image Container */}
+              <div className="relative">
+                <img
+                  src={patient.informedConsent}
+                  alt="Informed Consent"
+                  className="w-full h-auto object-contain transition-transform duration-200 group-hover:scale-105 rounded-lg"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.src =
+                      "https://mhdc.co.id/wp-content/uploads//Rontgen-gigi-panoramik.jpg";
+                    target.onerror = null;
+                  }}
+                />
+
+                {/* Hover Overlay */}
+                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-200 flex items-center justify-center rounded-lg">
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                    <div className="bg-white rounded-full p-3 shadow-lg">
+                      <svg
+                        className="w-6 h-6 text-gray-600"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"
+                        />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Informed Consent Badge */}
+                <div className="absolute top-3 left-3">
+                  <span className="bg-green-600 text-white text-sm px-3 py-1 rounded-full font-medium shadow-md">
+                    <svg
+                      className="w-4 h-4 inline mr-1"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                      />
+                    </svg>
+                    Informed Consent
+                  </span>
+                </div>
+              </div>
+
+              {/* Image Title */}
+              <div className="p-4 bg-gray-50">
+                <h5 className="font-medium text-gray-900 text-base leading-tight text-center">
+                  Lembar Persetujuan Tindakan Medis
+                </h5>
+                <p className="text-sm text-gray-600 text-center mt-1">
+                  Klik untuk melihat dalam ukuran penuh
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Instructions */}
+          <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+            <div className="flex items-start space-x-3">
+              <div className="flex-shrink-0">
+                <svg
+                  className="w-5 h-5 text-green-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+              </div>
+              <div>
+                <h6 className="font-medium text-gray-900 text-sm mb-1">
+                  Informasi Lembar Persetujuan:
+                </h6>
+                <ul className="text-xs text-gray-700 space-y-1">
+                  <li>
+                    • Dokumen ini berisi persetujuan pasien untuk tindakan medis
+                  </li>
+                  <li>• Klik pada gambar untuk melihat dalam ukuran penuh</li>
+                  <li>
+                    • Lembar persetujuan adalah bagian penting dari rekam medis
+                  </li>
+                  <li>• Pastikan semua informasi tercantum dengan jelas</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          {/* Additional Information */}
+          <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+            <div className="flex items-center space-x-3">
+              <div className="flex-shrink-0">
+                <svg
+                  className="w-5 h-5 text-blue-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                  />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h6 className="font-medium text-gray-900 text-sm mb-1">
+                  Data Pasien:
+                </h6>
+                <div className="grid grid-cols-2 gap-4 text-xs text-gray-700">
+                  <div>
+                    <span className="font-medium">Nama:</span>{" "}
+                    {patient.namaLengkap}
+                  </div>
+                  <div>
+                    <span className="font-medium">RM:</span>{" "}
+                    {patient.rekamMedik}
+                  </div>
+                  <div>
+                    <span className="font-medium">Tanggal Lahir:</span>{" "}
+                    {new Date(patient.tanggalLahir).toLocaleDateString("id-ID")}
+                  </div>
+                  <div>
+                    <span className="font-medium">Telepon:</span>{" "}
+                    {patient.telepon}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   };
@@ -992,10 +1193,12 @@ const CreateRegistration: React.FC<CreateRegistrationProps> = ({
     isActive,
     onClick,
   }: {
-    id: "assessment" | "image" | "jadwal";
+    id: "assessment" | "image" | "lembarPersetujuan" | "jadwal";
     label: string;
     isActive: boolean;
-    onClick: (tab: "assessment" | "image" | "jadwal") => void;
+    onClick: (
+      tab: "assessment" | "image" | "lembarPersetujuan" | "jadwal"
+    ) => void;
   }) => (
     <button
       onClick={() => onClick(id)}
@@ -1015,6 +1218,8 @@ const CreateRegistration: React.FC<CreateRegistrationProps> = ({
         return <Assessment patient={patient} />;
       case "image":
         return <ImageTabContent />;
+      case "lembarPersetujuan":
+        return <LembarPersetujuanTabContent />;
       case "jadwal":
         return (
           <div className="p-6 space-y-6">
@@ -1313,7 +1518,9 @@ const CreateRegistration: React.FC<CreateRegistrationProps> = ({
 
                       // Tentukan dokter yang ditampilkan
                       const doctorName =
-                        history.dokter === "dr-kartini"
+                        history.dokter === "drg-fahrul"
+                          ? "drg. Moehammad Fahrul Rozi, Sp.Ort"
+                          : history.dokter === "dr-kartini"
                           ? "dr. Sri Kartini Kussudiardjo, Sp.A"
                           : history.dokter || "-";
 
@@ -1441,6 +1648,12 @@ const CreateRegistration: React.FC<CreateRegistrationProps> = ({
               id="image"
               label="Tab Image"
               isActive={activeTab === "image"}
+              onClick={setActiveTab}
+            />
+            <TabButton
+              id="lembarPersetujuan"
+              label="Lembar Persetujuan"
+              isActive={activeTab === "lembarPersetujuan"}
               onClick={setActiveTab}
             />
             <TabButton

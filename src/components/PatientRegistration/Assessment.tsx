@@ -39,6 +39,19 @@ interface ResepItem {
 }
 
 const Assessment: React.FC<AssessmentProps> = ({ patient }) => {
+  // Utility function untuk format angka dengan pemisah ribuan
+  const formatNumber = (num: number | string): string => {
+    if (!num) return "0";
+    const numStr = num.toString().replace(/\D/g, ""); // hapus semua non-digit
+    return parseInt(numStr).toLocaleString("id-ID");
+  };
+
+  // Utility function untuk parse angka dari format tampilan ke number
+  const parseFormattedNumber = (formattedStr: string): number => {
+    if (!formattedStr) return 0;
+    return parseInt(formattedStr.replace(/\D/g, "")) || 0;
+  };
+
   // State untuk riwayat assessment
   const [assessmentHistory, setAssessmentHistory] = useState<
     AssessmentHistory[]
@@ -81,7 +94,7 @@ const Assessment: React.FC<AssessmentProps> = ({ patient }) => {
   const [tindakanForm, setTindakanForm] = useState({
     nama: "",
     jumlah: 1,
-    biaya: 0,
+    biaya: "",
   });
   const [resepForm, setResepForm] = useState({
     nama: "",
@@ -177,17 +190,17 @@ const Assessment: React.FC<AssessmentProps> = ({ patient }) => {
   };
 
   const handleAddTindakan = () => {
-    if (
-      tindakanForm.nama &&
-      tindakanForm.jumlah > 0 &&
-      tindakanForm.biaya > 0
-    ) {
+    const biayaNumber = parseFormattedNumber(tindakanForm.biaya);
+
+    if (tindakanForm.nama && tindakanForm.jumlah > 0 && biayaNumber > 0) {
       const newTindakan: TindakanItem = {
-        ...tindakanForm,
-        total: tindakanForm.jumlah * tindakanForm.biaya,
+        nama: tindakanForm.nama,
+        jumlah: tindakanForm.jumlah,
+        biaya: biayaNumber,
+        total: tindakanForm.jumlah * biayaNumber,
       };
       setSelectedTindakan((prev) => [...prev, newTindakan]);
-      setTindakanForm({ nama: "", jumlah: 1, biaya: 0 });
+      setTindakanForm({ nama: "", jumlah: 1, biaya: "" });
       setShowTindakanModal(false);
     }
   };
@@ -273,6 +286,10 @@ const Assessment: React.FC<AssessmentProps> = ({ patient }) => {
     setSelectedICD9([]);
     setSelectedTindakan([]);
     setSelectedResep([]);
+
+    // Reset form modal states
+    setTindakanForm({ nama: "", jumlah: 1, biaya: "" });
+    setResepForm({ nama: "", jumlah: "", signa: "" });
   };
 
   return (
@@ -943,7 +960,7 @@ const Assessment: React.FC<AssessmentProps> = ({ patient }) => {
 
       {/* Modal ICD 10 */}
       {showICD10Modal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed -inset-10 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-gray-900">
@@ -1021,7 +1038,7 @@ const Assessment: React.FC<AssessmentProps> = ({ patient }) => {
 
       {/* Modal ICD 9 */}
       {showICD9Modal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed -inset-10 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-gray-900">
@@ -1099,7 +1116,7 @@ const Assessment: React.FC<AssessmentProps> = ({ patient }) => {
 
       {/* Modal Tindakan */}
       {showTindakanModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed -inset-10 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-gray-900">
@@ -1155,25 +1172,38 @@ const Assessment: React.FC<AssessmentProps> = ({ patient }) => {
                   Biaya (Rp.)
                 </label>
                 <input
-                  type="number"
-                  min="0"
-                  value={tindakanForm.biaya}
-                  onChange={(e) =>
+                  type="text"
+                  value={
+                    tindakanForm.biaya ? formatNumber(tindakanForm.biaya) : ""
+                  }
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/\D/g, ""); // hapus semua non-digit
                     setTindakanForm((prev) => ({
                       ...prev,
-                      biaya: parseInt(e.target.value) || 0,
-                    }))
-                  }
+                      biaya: value,
+                    }));
+                  }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="0"
+                  placeholder="Masukkan biaya tindakan"
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  {tindakanForm.biaya &&
+                  parseFormattedNumber(tindakanForm.biaya) > 0
+                    ? `Nilai: Rp. ${formatNumber(tindakanForm.biaya)}`
+                    : "Masukkan angka tanpa titik atau koma"}
+                </p>
               </div>
             </div>
 
             <div className="flex justify-end mt-6">
               <button
                 onClick={handleAddTindakan}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={
+                  !tindakanForm.nama ||
+                  tindakanForm.jumlah <= 0 ||
+                  !tindakanForm.biaya
+                }
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Simpan
               </button>
@@ -1184,7 +1214,7 @@ const Assessment: React.FC<AssessmentProps> = ({ patient }) => {
 
       {/* Modal Resep */}
       {showResepModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed -inset-10 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-gray-900">
@@ -1228,7 +1258,7 @@ const Assessment: React.FC<AssessmentProps> = ({ patient }) => {
                     }))
                   }
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Contoh: 10 tablet"
+                  placeholder="Contoh: 1"
                 />
               </div>
 
@@ -1243,7 +1273,7 @@ const Assessment: React.FC<AssessmentProps> = ({ patient }) => {
                     setResepForm((prev) => ({ ...prev, signa: e.target.value }))
                   }
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Contoh: 3x1 setelah makan"
+                  placeholder="Contoh: 3x1"
                 />
               </div>
             </div>
@@ -1251,7 +1281,10 @@ const Assessment: React.FC<AssessmentProps> = ({ patient }) => {
             <div className="flex justify-end mt-6">
               <button
                 onClick={handleAddResep}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={
+                  !resepForm.nama || !resepForm.jumlah || !resepForm.signa
+                }
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Simpan
               </button>

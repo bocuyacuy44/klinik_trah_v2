@@ -31,7 +31,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         // Simpan token dan user data ke localStorage
         localStorage.setItem("token", data.token);
         localStorage.setItem("user", JSON.stringify(data.user));
-        
+
         // Format user data untuk komponen
         const userData = {
           id: data.user.id,
@@ -40,7 +40,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           name: data.user.full_name,
           email: data.user.email,
         };
-        
+
         onLogin(userData);
       } else {
         setError(data.message || "Login gagal");
@@ -63,8 +63,12 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             alt="Logo Klinik"
             className="w-16 h-16 rounded-full object-cover mx-auto mb-4"
           />
-          <h1 className="text-2xl font-bold text-gray-900">Dental Care Garut</h1>
-          <p className="text-gray-600 mt-2">Harap login untuk mengakses sistem.</p>
+          <h1 className="text-2xl font-bold text-gray-900">
+            GARUT DENTAL CARE
+          </h1>
+          <p className="text-gray-600 mt-2">
+            Harap login untuk mengakses sistem.
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -117,18 +121,6 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             {loading ? "Loading..." : "Login"}
           </button>
         </form>
-
-        <div className="mt-6 text-center text-sm text-gray-500">
-          <p className="mb-2">Credentials:</p>
-          <div className="space-y-1">
-            <p>
-              <strong>Administrasi:</strong> admin | password123
-            </p>
-            <p>
-              <strong>Dokter:</strong> dr.smith | password123
-            </p>
-          </div>
-        </div>
       </div>
     </div>
   );

@@ -64,7 +64,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeMenu, onMenuClick, user }) => {
           />
           <div>
             <h1 className="text-lg font-bold text-gray-900">
-              DENTAL CARE GARUT
+              GARUT DENTAL CARE
             </h1>
           </div>
         </div>
