@@ -1,5 +1,5 @@
 import React from "react";
-import { Home, Users, ClipboardList, BarChart3, UserCheck } from "lucide-react";
+import { Home, Users, ClipboardList, UserCheck } from "lucide-react";
 import { User } from "../../types";
 
 interface SidebarProps {
@@ -38,13 +38,6 @@ const Sidebar: React.FC<SidebarProps> = ({ activeMenu, onMenuClick, user }) => {
       section: "MASTER DATA",
       roles: ["admin", "administrasi"],
     },
-    {
-      id: "laporan",
-      label: "Laporan kunjungan",
-      icon: BarChart3,
-      section: "LAPORAN",
-      roles: ["admin", "administrasi", "perawat"],
-    },
   ];
 
   // Filter menu items based on user role
@@ -52,7 +45,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeMenu, onMenuClick, user }) => {
     ? allMenuItems.filter((item) => item.roles.includes(user.role))
     : allMenuItems;
 
-  const sections = ["HOME", "TRANSAKSI", "MASTER DATA", "LAPORAN"];
+  const sections = ["HOME", "TRANSAKSI", "MASTER DATA"];
 
   // Filter visible sections
   const visibleSections = sections.filter((section) =>

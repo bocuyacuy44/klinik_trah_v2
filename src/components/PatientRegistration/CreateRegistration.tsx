@@ -5,6 +5,7 @@ import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import { Patient } from "../../types";
 import Breadcrumb from "../Layout/Breadcrumb";
+import Assessment from "./Assessment";
 import { registrationService } from "../../services/registrationService";
 import {
   jadwalKontrolService,
@@ -1011,13 +1012,7 @@ const CreateRegistration: React.FC<CreateRegistrationProps> = ({
   const renderTabContent = () => {
     switch (activeTab) {
       case "assessment":
-        return (
-          <div className="p-6">
-            <p className="text-gray-500 text-center py-8">
-              Konten Assessment akan ditampilkan di sini
-            </p>
-          </div>
-        );
+        return <Assessment patient={patient} />;
       case "image":
         return <ImageTabContent />;
       case "jadwal":

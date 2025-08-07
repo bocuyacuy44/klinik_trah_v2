@@ -27,7 +27,6 @@ function App() {
     | "pendaftaran-pasien"
     | "pasien"
     | "sdm"
-    | "laporan"
     | "new-patient"
     | "select-patient"
     | "create-registration"
@@ -328,17 +327,6 @@ function App() {
         );
       case "sdm":
         return <SDMData />;
-      case "laporan":
-        return (
-          <div className="p-6">
-            <h1 className="text-2xl font-bold text-gray-900">
-              Laporan Kunjungan
-            </h1>
-            <p className="text-gray-600 mt-2">
-              Fitur laporan kunjungan akan segera tersedia
-            </p>
-          </div>
-        );
       default:
         return (
           <PatientRegistration
