@@ -55,7 +55,92 @@ interface CreateAssessmentData {
   selectedResep: any[];
 }
 
+interface ICD10Item {
+  kode: string;
+  nama: string;
+}
+
+interface ICD9Item {
+  kode: string;
+  nama: string;
+}
+
 export const assessmentService = {
+  // === ICD DATA METHODS ===
+  async createICDTables(): Promise<void> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/create-icd-tables`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      console.log("ICD tables created/verified");
+    } catch (error) {
+      console.error("Error creating ICD tables:", error);
+      throw error;
+    }
+  },
+
+  async getICD10Data(): Promise<ICD10Item[]> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/icd10-dental`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error("Error fetching ICD10 data:", error);
+      throw error;
+    }
+  },
+
+  async searchICD10(query: string): Promise<ICD10Item[]> {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/icd10-dental/search?q=${encodeURIComponent(query)}`
+      );
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error("Error searching ICD10 data:", error);
+      throw error;
+    }
+  },
+
+  async getICD9Data(): Promise<ICD9Item[]> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/icd9-dental`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error("Error fetching ICD9 data:", error);
+      throw error;
+    }
+  },
+
+  async searchICD9(query: string): Promise<ICD9Item[]> {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/icd9-dental/search?q=${encodeURIComponent(query)}`
+      );
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error("Error searching ICD9 data:", error);
+      throw error;
+    }
+  },
+
+  // === ASSESSMENT METHODS ===
   async createAssessmentTable(): Promise<void> {
     try {
       const response = await fetch(`${API_BASE_URL}/create-assessment-table`);

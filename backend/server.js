@@ -858,6 +858,116 @@ app.delete("/jadwal-kontrol/:id", async (req, res) => {
   }
 });
 
+// ==================== ICD DENTAL DATA ENDPOINTS ====================
+
+// Create ICD tables
+app.get("/create-icd-tables", async (req, res) => {
+  try {
+    // Read SQL file
+    const fs = require("fs");
+    const path = require("path");
+    const sqlFile = path.join(__dirname, "create_icd_tables.sql");
+    const sql = fs.readFileSync(sqlFile, "utf8");
+
+    // Execute SQL
+    await pool.query(sql);
+
+    res.json({
+      message: "Tabel ICD dental berhasil dibuat dan data berhasil diisi",
+    });
+  } catch (error) {
+    console.error("Error creating ICD tables:", error);
+    res.status(500).json({
+      message: "Gagal membuat tabel ICD dental",
+      error: error.message,
+    });
+  }
+});
+
+// Get all ICD10 dental procedures
+app.get("/icd10-dental", async (req, res) => {
+  try {
+    const result = await pool.query(
+      "SELECT kode, nama FROM icd10_dental ORDER BY kode ASC"
+    );
+    res.json(result.rows);
+  } catch (error) {
+    console.error("Error fetching ICD10 dental data:", error);
+    res.status(500).json({
+      message: "Gagal mengambil data ICD10 dental",
+      error: error.message,
+    });
+  }
+});
+
+// Search ICD10 dental procedures
+app.get("/icd10-dental/search", async (req, res) => {
+  try {
+    const { q } = req.query;
+    if (!q) {
+      return res
+        .status(400)
+        .json({ message: "Parameter pencarian diperlukan" });
+    }
+
+    const result = await pool.query(
+      `SELECT kode, nama FROM icd10_dental 
+       WHERE kode ILIKE $1 OR nama ILIKE $1
+       ORDER BY kode ASC`,
+      [`%${q}%`]
+    );
+    res.json(result.rows);
+  } catch (error) {
+    console.error("Error searching ICD10 dental data:", error);
+    res.status(500).json({
+      message: "Gagal mencari data ICD10 dental",
+      error: error.message,
+    });
+  }
+});
+
+// Get all ICD9 dental procedures
+app.get("/icd9-dental", async (req, res) => {
+  try {
+    const result = await pool.query(
+      "SELECT kode, nama FROM icd9_dental ORDER BY kode ASC"
+    );
+    res.json(result.rows);
+  } catch (error) {
+    console.error("Error fetching ICD9 dental data:", error);
+    res.status(500).json({
+      message: "Gagal mengambil data ICD9 dental",
+      error: error.message,
+    });
+  }
+});
+
+// Search ICD9 dental procedures
+app.get("/icd9-dental/search", async (req, res) => {
+  try {
+    const { q } = req.query;
+    if (!q) {
+      return res
+        .status(400)
+        .json({ message: "Parameter pencarian diperlukan" });
+    }
+
+    const result = await pool.query(
+      `SELECT kode, nama FROM icd9_dental 
+       WHERE kode ILIKE $1 OR nama ILIKE $1
+       ORDER BY kode ASC`,
+      [`%${q}%`]
+    );
+    res.json(result.rows);
+  } catch (error) {
+    console.error("Error searching ICD9 dental data:", error);
+    res.status(500).json({
+      message: "Gagal mencari data ICD9 dental",
+      error: error.message,
+    });
+  }
+});
+
 // ==================== ASSESSMENT ENDPOINTS ====================
 
 // Create assessment table if not exists

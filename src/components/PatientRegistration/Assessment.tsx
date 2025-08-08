@@ -17,7 +17,6 @@ interface AssessmentHistory {
 interface ICD10Item {
   kode: string;
   nama: string;
-  jenis: string;
 }
 
 interface ICD9Item {
@@ -58,6 +57,12 @@ const Assessment: React.FC<AssessmentProps> = ({ patient }) => {
   >([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  // State untuk ICD data dari database
+  const [icd10Data, setIcd10Data] = useState<ICD10Item[]>([]);
+  const [icd9Data, setIcd9Data] = useState<ICD9Item[]>([]);
+  const [loadingICD10, setLoadingICD10] = useState(false);
+  const [loadingICD9, setLoadingICD9] = useState(false);
 
   // State untuk form assessment
   const [formData, setFormData] = useState({
@@ -104,32 +109,20 @@ const Assessment: React.FC<AssessmentProps> = ({ patient }) => {
     signa: "",
   });
 
-  // Sample data ICD 10
-  const sampleICD10 = [
-    { kode: "K02.1", nama: "Karies dentin", jenis: "Primer" },
-    { kode: "K02.9", nama: "Karies gigi, tidak spesifik", jenis: "Sekunder" },
-    { kode: "K04.0", nama: "Pulpitis", jenis: "Primer" },
-    { kode: "K05.0", nama: "Gingivitis akut", jenis: "Primer" },
-    { kode: "K08.1", nama: "Kehilangan gigi karena trauma", jenis: "Sekunder" },
-  ];
+  // Sample data ICD 10 - REPLACED with database data
+  const sampleICD10: ICD10Item[] = [];
 
-  // Sample data ICD 9
-  const sampleICD9 = [
-    { kode: "23.01", nama: "Pencabutan gigi" },
-    { kode: "23.3", nama: "Pembersihan gigi dan scaling" },
-    { kode: "23.41", nama: "Penambalan gigi dengan amalgam" },
-    { kode: "23.42", nama: "Penambalan gigi dengan komposit" },
-    { kode: "23.43", nama: "Penambalan gigi dengan semen" },
-  ];
+  // Sample data ICD 9 - REPLACED with database data
+  const sampleICD9: ICD9Item[] = [];
 
-  // Filter functions
-  const filteredICD10 = sampleICD10.filter(
+  // Filter functions - Now using database data (simplified)
+  const filteredICD10 = icd10Data.filter(
     (item) =>
       item.kode.toLowerCase().includes(icd10Search.toLowerCase()) ||
       item.nama.toLowerCase().includes(icd10Search.toLowerCase())
   );
 
-  const filteredICD9 = sampleICD9.filter(
+  const filteredICD9 = icd9Data.filter(
     (item) =>
       item.kode.toLowerCase().includes(icd9Search.toLowerCase()) ||
       item.nama.toLowerCase().includes(icd9Search.toLowerCase())
@@ -138,7 +131,34 @@ const Assessment: React.FC<AssessmentProps> = ({ patient }) => {
   // Load assessment history when patient changes
   useEffect(() => {
     loadAssessmentHistory();
+    loadICDData();
   }, [patient.id]);
+
+  // Load ICD data from database
+  const loadICDData = async () => {
+    try {
+      // Create ICD tables first if they don't exist
+      await assessmentService.createICDTables();
+
+      // Load ICD10 data
+      setLoadingICD10(true);
+      const icd10Result = await assessmentService.getICD10Data();
+      setIcd10Data(icd10Result);
+
+      // Load ICD9 data
+      setLoadingICD9(true);
+      const icd9Result = await assessmentService.getICD9Data();
+      setIcd9Data(icd9Result);
+    } catch (error) {
+      console.error("Error loading ICD data:", error);
+      // Fallback to empty arrays if database fails
+      setIcd10Data([]);
+      setIcd9Data([]);
+    } finally {
+      setLoadingICD10(false);
+      setLoadingICD9(false);
+    }
+  };
 
   const loadAssessmentHistory = async () => {
     try {
@@ -637,11 +657,13 @@ const Assessment: React.FC<AssessmentProps> = ({ patient }) => {
             </div>
           </div>
 
-          {/* Diagnosa & Procedure */}
+          {/* Prosedur ICD10 & ICD9 */}
           <div className="space-y-4">
-            {/* Diagnosa */}
+            {/* Prosedur ICD10 */}
             <div>
-              <h4 className="font-medium text-gray-900 mb-3">Diagnosa</h4>
+              <h4 className="font-medium text-gray-900 mb-3">
+                Prosedur ICD 10
+              </h4>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   ICD 10
@@ -651,14 +673,14 @@ const Assessment: React.FC<AssessmentProps> = ({ patient }) => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center justify-center space-x-2"
                 >
                   <Search className="w-4 h-4" />
-                  <span>Cari Diagnosa</span>
+                  <span>Cari Prosedur</span>
                 </button>
               </div>
             </div>
 
-            {/* Procedure */}
+            {/* Prosedur ICD9 */}
             <div>
-              <h4 className="font-medium text-gray-900 mb-3">Procedure</h4>
+              <h4 className="font-medium text-gray-900 mb-3">Prosedur ICD 9</h4>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   ICD 9
@@ -705,7 +727,7 @@ const Assessment: React.FC<AssessmentProps> = ({ patient }) => {
           <div className="bg-white rounded-lg border border-gray-200">
             <div className="px-6 py-4 border-b border-gray-200">
               <h3 className="text-lg font-semibold text-gray-900">
-                Diagnosa (ICD 10)
+                Prosedur ICD 10
               </h3>
             </div>
             <div className="overflow-x-auto">
@@ -713,13 +735,10 @@ const Assessment: React.FC<AssessmentProps> = ({ patient }) => {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Kode Diagnosa
+                      Kode Prosedur
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Nama Diagnosa
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Jenis Diagnosa
+                      Nama Prosedur
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Aksi
@@ -732,11 +751,8 @@ const Assessment: React.FC<AssessmentProps> = ({ patient }) => {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {item.kode}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="px-6 py-4 text-sm text-gray-900">
                         {item.nama}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {item.jenis}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
                         <input
@@ -759,7 +775,7 @@ const Assessment: React.FC<AssessmentProps> = ({ patient }) => {
           <div className="bg-white rounded-lg border border-gray-200">
             <div className="px-6 py-4 border-b border-gray-200">
               <h3 className="text-lg font-semibold text-gray-900">
-                Prosedur (ICD 9)
+                Prosedur ICD 9
               </h3>
             </div>
             <div className="overflow-x-auto">
@@ -783,7 +799,7 @@ const Assessment: React.FC<AssessmentProps> = ({ patient }) => {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {item.kode}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="px-6 py-4 text-sm text-gray-900">
                         {item.nama}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
@@ -894,7 +910,6 @@ const Assessment: React.FC<AssessmentProps> = ({ patient }) => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       <div className="flex items-center space-x-2">
                         <span>{caraBayar}</span>
-                        
                       </div>
                     </td>
                     <td className="px-6 py-4"></td>
@@ -993,7 +1008,7 @@ const Assessment: React.FC<AssessmentProps> = ({ patient }) => {
           <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-gray-900">
-                Cari Diagnosa ICD 10
+                Cari Prosedur ICD 10
               </h3>
               <button
                 onClick={() => setShowICD10Modal(false)}
@@ -1009,8 +1024,13 @@ const Assessment: React.FC<AssessmentProps> = ({ patient }) => {
                 value={icd10Search}
                 onChange={(e) => setIcd10Search(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Cari berdasarkan kode atau nama diagnosa..."
+                placeholder="Cari berdasarkan kode atau nama prosedur..."
               />
+              {loadingICD10 && (
+                <p className="text-sm text-gray-500 mt-1">
+                  Memuat data prosedur...
+                </p>
+              )}
             </div>
 
             <div className="overflow-x-auto">
@@ -1018,10 +1038,10 @@ const Assessment: React.FC<AssessmentProps> = ({ patient }) => {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Kode Diagnosa
+                      Kode Prosedur
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Nama Diagnosa
+                      Nama Prosedur
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Pilih
@@ -1029,26 +1049,39 @@ const Assessment: React.FC<AssessmentProps> = ({ patient }) => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredICD10.map((item) => (
-                    <tr key={item.kode}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {item.kode}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {item.nama}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <input
-                          type="checkbox"
-                          checked={selectedICD10.some(
-                            (selected) => selected.kode === item.kode
-                          )}
-                          onChange={() => handleToggleICD10(item)}
-                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                        />
+                  {filteredICD10.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={3}
+                        className="px-6 py-4 text-center text-gray-500"
+                      >
+                        {loadingICD10
+                          ? "Memuat data..."
+                          : "Tidak ada data prosedur ditemukan"}
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    filteredICD10.map((item) => (
+                      <tr key={item.kode}>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {item.kode}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-900">
+                          {item.nama}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          <input
+                            type="checkbox"
+                            checked={selectedICD10.some(
+                              (selected) => selected.kode === item.kode
+                            )}
+                            onChange={() => handleToggleICD10(item)}
+                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                          />
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -1089,6 +1122,11 @@ const Assessment: React.FC<AssessmentProps> = ({ patient }) => {
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Cari berdasarkan kode atau nama prosedur..."
               />
+              {loadingICD9 && (
+                <p className="text-sm text-gray-500 mt-1">
+                  Memuat data prosedur...
+                </p>
+              )}
             </div>
 
             <div className="overflow-x-auto">
@@ -1107,26 +1145,39 @@ const Assessment: React.FC<AssessmentProps> = ({ patient }) => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredICD9.map((item) => (
-                    <tr key={item.kode}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {item.kode}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {item.nama}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <input
-                          type="checkbox"
-                          checked={selectedICD9.some(
-                            (selected) => selected.kode === item.kode
-                          )}
-                          onChange={() => handleToggleICD9(item)}
-                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                        />
+                  {filteredICD9.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={3}
+                        className="px-6 py-4 text-center text-gray-500"
+                      >
+                        {loadingICD9
+                          ? "Memuat data..."
+                          : "Tidak ada data prosedur ditemukan"}
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    filteredICD9.map((item) => (
+                      <tr key={item.kode}>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {item.kode}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-900">
+                          {item.nama}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          <input
+                            type="checkbox"
+                            checked={selectedICD9.some(
+                              (selected) => selected.kode === item.kode
+                            )}
+                            onChange={() => handleToggleICD9(item)}
+                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                          />
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
