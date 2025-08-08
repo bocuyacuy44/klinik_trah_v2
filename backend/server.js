@@ -1080,7 +1080,11 @@ app.get("/assessments/:patientId", async (req, res) => {
   try {
     const { patientId } = req.params;
     const result = await pool.query(
-      `SELECT id, patient_id, dokter, assessment, waktu 
+      `SELECT id, patient_id, dokter, assessment, waktu, created_at, updated_at,
+              keluhan_utama, alergi_obat, alergi_obat_detail, alergi_makanan, 
+              alergi_makanan_detail, tekanan_darah, penyakit_jantung, hemofilia, 
+              hepatitis, gastritis, selected_icd10, selected_icd9, selected_resep,
+              tindakan_nama, tindakan_jumlah, tindakan_biaya, tindakan_total, cara_bayar
        FROM riwayat_assessment 
        WHERE patient_id = $1 
        ORDER BY waktu DESC`,

@@ -328,6 +328,24 @@ const Assessment: React.FC<AssessmentProps> = ({
     try {
       setSaving(true);
 
+      // Validasi: pastikan ada ICD10 yang dipilih untuk diagnosa
+      if (!selectedICD10 || selectedICD10.length === 0) {
+        alert(
+          "Mohon pilih minimal satu diagnosa (ICD10) sebelum menyimpan pendaftaran."
+        );
+        setSaving(false);
+        return;
+      }
+
+      // Validasi: pastikan ada tindakan yang dipilih
+      if (!selectedTindakan || selectedTindakan.length === 0) {
+        alert(
+          "Mohon tambahkan minimal satu tindakan sebelum menyimpan pendaftaran."
+        );
+        setSaving(false);
+        return;
+      }
+
       // Prepare assessment data
       const assessmentData = {
         patient_id: patient.id,
@@ -338,6 +356,8 @@ const Assessment: React.FC<AssessmentProps> = ({
         selectedResep,
         caraBayar,
       };
+
+      console.log("Saving assessment data:", assessmentData);
 
       // Call parent function to save both registration and assessment
       if (onSavePendaftaran) {
@@ -721,7 +741,7 @@ const Assessment: React.FC<AssessmentProps> = ({
             {/* Prosedur ICD10 */}
             <div>
               <h4 className="font-medium text-gray-900 mb-3">
-                Prosedur ICD 10
+                Diagnosa
               </h4>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -739,7 +759,6 @@ const Assessment: React.FC<AssessmentProps> = ({
 
             {/* Prosedur ICD9 */}
             <div>
-              <h4 className="font-medium text-gray-900 mb-3">Prosedur ICD 9</h4>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   ICD 9

@@ -190,14 +190,27 @@ const CreateRegistration: React.FC<CreateRegistrationProps> = ({
 
   // Fungsi untuk mendapatkan diagnosa berdasarkan tanggal registrasi
   const getDiagnosisForDate = (registrationDate: string) => {
-    // Cari assessment yang dibuat pada tanggal yang sama atau setelah tanggal registrasi
-    const registrationDateObj = new Date(registrationDate);
+    console.log("=== getDiagnosisForDate Debug ===");
+    console.log("Registration Date:", registrationDate);
+    console.log("Patient Assessments:", patientAssessments);
 
-    // Filter assessments untuk tanggal yang relevan
+    // Cari assessment yang dibuat pada tanggal yang sama dengan tanggal registrasi
+    const registrationDateObj = new Date(registrationDate);
+    console.log("Registration Date Object:", registrationDateObj);
+
+    // Filter assessments untuk tanggal yang sama dengan registrasi
     const relevantAssessments = patientAssessments.filter((assessment) => {
       const assessmentDate = new Date(
         assessment.waktu || assessment.created_at
       );
+
+      console.log(
+        "Assessment date raw:",
+        assessment.waktu || assessment.created_at
+      );
+      console.log("Assessment Date Object:", assessmentDate);
+
+      // Bandingkan hanya tanggal (ignore waktu)
       const registrationDateOnly = new Date(
         registrationDateObj.getFullYear(),
         registrationDateObj.getMonth(),
@@ -209,44 +222,105 @@ const CreateRegistration: React.FC<CreateRegistrationProps> = ({
         assessmentDate.getDate()
       );
 
-      return assessmentDateOnly.getTime() >= registrationDateOnly.getTime();
+      console.log("Registration Date Only:", registrationDateOnly);
+      console.log("Assessment Date Only:", assessmentDateOnly);
+
+      // Cari assessment yang dibuat pada tanggal yang sama dengan registrasi
+      return assessmentDateOnly.getTime() === registrationDateOnly.getTime();
     });
 
+    console.log("Relevant Assessments:", relevantAssessments);
+
+    // Jika tidak ada assessment pada tanggal yang sama, cari yang terdekat (dalam range 1 hari)
     if (relevantAssessments.length === 0) {
-      return "-";
+      const nearbyAssessments = patientAssessments.filter((assessment) => {
+        const assessmentDate = new Date(
+          assessment.waktu || assessment.created_at
+        );
+        const registrationDateOnly = new Date(
+          registrationDateObj.getFullYear(),
+          registrationDateObj.getMonth(),
+          registrationDateObj.getDate()
+        );
+        const assessmentDateOnly = new Date(
+          assessmentDate.getFullYear(),
+          assessmentDate.getMonth(),
+          assessmentDate.getDate()
+        );
+
+        // Cari assessment dalam range 1 hari dari tanggal registrasi
+        const timeDifference = Math.abs(
+          assessmentDateOnly.getTime() - registrationDateOnly.getTime()
+        );
+        const oneDayInMs = 24 * 60 * 60 * 1000;
+
+        return timeDifference <= oneDayInMs;
+      });
+
+      console.log("Nearby Assessments:", nearbyAssessments);
+
+      if (nearbyAssessments.length === 0) {
+        console.log("No nearby assessments found, returning '-'");
+        return "-";
+      }
+
+      // Gunakan assessment terdekat
+      const closestAssessment = nearbyAssessments.sort((a, b) => {
+        const aDate = new Date(a.waktu || a.created_at);
+        const bDate = new Date(b.waktu || b.created_at);
+        const regDate = registrationDateObj;
+
+        const aDiff = Math.abs(aDate.getTime() - regDate.getTime());
+        const bDiff = Math.abs(bDate.getTime() - regDate.getTime());
+
+        return aDiff - bDiff;
+      })[0];
+
+      console.log("Using closest assessment:", closestAssessment);
+      return extractDiagnosisFromAssessment(closestAssessment);
     }
 
-    // Ambil assessment terbaru dan ekstrak diagnosa ICD10
+    // Ambil assessment terbaru dari tanggal yang sama
     const latestAssessment = relevantAssessments.sort(
       (a, b) =>
         new Date(b.waktu || b.created_at).getTime() -
         new Date(a.waktu || a.created_at).getTime()
     )[0];
 
-    if (latestAssessment && latestAssessment.selected_icd10) {
+    console.log("Using latest assessment:", latestAssessment);
+    const result = extractDiagnosisFromAssessment(latestAssessment);
+    console.log("Final diagnosis result:", result);
+    console.log("=== End Debug ===");
+    return result;
+  };
+
+  // Helper function untuk ekstrak diagnosa dari assessment
+  const extractDiagnosisFromAssessment = (assessment: any) => {
+    if (assessment && assessment.selected_icd10) {
       try {
         const icd10Data =
-          typeof latestAssessment.selected_icd10 === "string"
-            ? JSON.parse(latestAssessment.selected_icd10)
-            : latestAssessment.selected_icd10;
+          typeof assessment.selected_icd10 === "string"
+            ? JSON.parse(assessment.selected_icd10)
+            : assessment.selected_icd10;
 
         if (Array.isArray(icd10Data) && icd10Data.length > 0) {
           // Gabungkan semua diagnosa dengan format: "Kode - Nama"
           return icd10Data
-            .map((item) => `${item.kode} - ${item.nama}`)
+            .map((item) => `${item.nama}`)
             .join(", ");
         }
       } catch (error) {
         console.error("Error parsing ICD10 data:", error);
       }
     }
-
     return "-";
   };
 
   const handleSavePendaftaranWithAssessment = async (assessmentData: any) => {
     if (!formData.ruangan || !formData.dokter) {
-      throw new Error("Mohon lengkapi semua field yang wajib diisi untuk pendaftaran");
+      throw new Error(
+        "Mohon lengkapi semua field yang wajib diisi untuk pendaftaran"
+      );
     }
 
     // Simpan registrasi dulu
@@ -261,15 +335,21 @@ const CreateRegistration: React.FC<CreateRegistrationProps> = ({
     // Simpan assessment
     await assessmentService.createAssessment(assessmentData);
 
-    onShowNotification?.("success", "Pendaftaran dan assessment berhasil disimpan");
+    onShowNotification?.(
+      "success",
+      "Pendaftaran dan assessment berhasil disimpan"
+    );
 
     // Reload data
     try {
-      const historyData = await registrationService.getRegistrationsByPatientId(patient.id);
+      const historyData = await registrationService.getRegistrationsByPatientId(
+        patient.id
+      );
       setPatientHistory(historyData);
 
-      const assessmentData = await assessmentService.getAssessmentHistory(patient.id);
-      setPatientAssessments(assessmentData);
+      const assessmentHistoryData =
+        await assessmentService.getAssessmentHistory(patient.id);
+      setPatientAssessments(assessmentHistoryData);
     } catch (error) {
       console.error("Error reloading data:", error);
     }
@@ -544,41 +624,6 @@ const CreateRegistration: React.FC<CreateRegistrationProps> = ({
                 </div>
               ))}
             </div>
-
-            {/* Instructions */}
-            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-              <div className="flex items-start space-x-3">
-                <div className="flex-shrink-0">
-                  <svg
-                    className="w-5 h-5 text-blue-500"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                </div>
-                <div>
-                  <h6 className="font-medium text-gray-900 text-sm mb-1">
-                    Petunjuk Penggunaan:
-                  </h6>
-                  <ul className="text-xs text-gray-600 space-y-1">
-                    <li>• Klik pada gambar untuk melihat dalam ukuran penuh</li>
-                    <li>• Angka pada badge menunjukkan kolom gambar</li>
-                    <li>• Gambar diurutkan berdasarkan kolom</li>
-                    <li>
-                      • Untuk melihat lembar persetujuan, gunakan tab "Lembar
-                      Persetujuan"
-                    </li>
-                  </ul>
-                </div>
-              </div>
-            </div>
           </div>
         )}
       </div>
@@ -715,86 +760,6 @@ const CreateRegistration: React.FC<CreateRegistrationProps> = ({
                 <p className="text-sm text-gray-600 text-center mt-1">
                   Klik untuk melihat dalam ukuran penuh
                 </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Instructions */}
-          <div className="bg-green-50 rounded-lg p-4 border border-green-200">
-            <div className="flex items-start space-x-3">
-              <div className="flex-shrink-0">
-                <svg
-                  className="w-5 h-5 text-green-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-              </div>
-              <div>
-                <h6 className="font-medium text-gray-900 text-sm mb-1">
-                  Informasi Lembar Persetujuan:
-                </h6>
-                <ul className="text-xs text-gray-700 space-y-1">
-                  <li>
-                    • Dokumen ini berisi persetujuan pasien untuk tindakan medis
-                  </li>
-                  <li>• Klik pada gambar untuk melihat dalam ukuran penuh</li>
-                  <li>
-                    • Lembar persetujuan adalah bagian penting dari rekam medis
-                  </li>
-                  <li>• Pastikan semua informasi tercantum dengan jelas</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-
-          {/* Additional Information */}
-          <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-            <div className="flex items-center space-x-3">
-              <div className="flex-shrink-0">
-                <svg
-                  className="w-5 h-5 text-blue-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                  />
-                </svg>
-              </div>
-              <div className="flex-1">
-                <h6 className="font-medium text-gray-900 text-sm mb-1">
-                  Data Pasien:
-                </h6>
-                <div className="grid grid-cols-2 gap-4 text-xs text-gray-700">
-                  <div>
-                    <span className="font-medium">Nama:</span>{" "}
-                    {patient.namaLengkap}
-                  </div>
-                  <div>
-                    <span className="font-medium">RM:</span>{" "}
-                    {patient.rekamMedik}
-                  </div>
-                  <div>
-                    <span className="font-medium">Tanggal Lahir:</span>{" "}
-                    {new Date(patient.tanggalLahir).toLocaleDateString("id-ID")}
-                  </div>
-                  <div>
-                    <span className="font-medium">Telepon:</span>{" "}
-                    {patient.telepon}
-                  </div>
-                </div>
               </div>
             </div>
           </div>
@@ -1280,8 +1245,8 @@ const CreateRegistration: React.FC<CreateRegistrationProps> = ({
     switch (activeTab) {
       case "assessment":
         return (
-          <Assessment 
-            patient={patient} 
+          <Assessment
+            patient={patient}
             onSavePendaftaran={handleSavePendaftaranWithAssessment}
             registrationFormData={formData}
           />
@@ -1483,32 +1448,6 @@ const CreateRegistration: React.FC<CreateRegistrationProps> = ({
                   </option>
                 ))}
               </select>
-            </div>
-          </div>
-
-          {/* Information Note */}
-          <div className="mt-6 pt-4 border-t border-gray-200">
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <svg
-                    className="w-5 h-5 text-blue-400"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </div>
-                <div className="ml-3">
-                  <p className="text-sm text-blue-800">
-                    <strong>Informasi:</strong> Untuk menyimpan pendaftaran, silakan isi form Assessment terlebih dahulu, kemudian klik tombol "Simpan Pendaftaran" pada tab Assessment.
-                  </p>
-                </div>
-              </div>
             </div>
           </div>
         </div>
