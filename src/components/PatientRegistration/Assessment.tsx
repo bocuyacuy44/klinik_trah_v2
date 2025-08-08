@@ -5,6 +5,14 @@ import { assessmentService } from "../../services/assessmentService";
 
 interface AssessmentProps {
   patient: Patient;
+  onSavePendaftaran?: (assessmentData: any) => Promise<void>;
+  registrationFormData?: {
+    ruangan: string;
+    dokter: string;
+    namaPengantar: string;
+    teleponPengantar: string;
+  };
+  onAssessmentSaved?: () => void; // Callback untuk notify parent bahwa assessment sudah disimpan
 }
 
 interface AssessmentHistory {
@@ -37,7 +45,12 @@ interface ResepItem {
   signa: string;
 }
 
-const Assessment: React.FC<AssessmentProps> = ({ patient }) => {
+const Assessment: React.FC<AssessmentProps> = ({
+  patient,
+  onSavePendaftaran,
+  registrationFormData,
+  onAssessmentSaved,
+}) => {
   // Utility function untuk format angka dengan pemisah ribuan
   const formatNumber = (num: number | string): string => {
     if (!num) return "0";
@@ -290,6 +303,11 @@ const Assessment: React.FC<AssessmentProps> = ({ patient }) => {
       // Reload assessment history to show the new entry
       await loadAssessmentHistory();
 
+      // Notify parent component
+      if (onAssessmentSaved) {
+        onAssessmentSaved();
+      }
+
       // Reset form after successful save
       handleResetForm();
 
@@ -298,6 +316,47 @@ const Assessment: React.FC<AssessmentProps> = ({ patient }) => {
       console.error("Error saving assessment:", error);
       alert(
         `Gagal menyimpan assessment: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSavePendaftaran = async () => {
+    try {
+      setSaving(true);
+
+      // Prepare assessment data
+      const assessmentData = {
+        patient_id: patient.id,
+        formData,
+        selectedICD10,
+        selectedICD9,
+        selectedTindakan,
+        selectedResep,
+        caraBayar,
+      };
+
+      // Call parent function to save both registration and assessment
+      if (onSavePendaftaran) {
+        await onSavePendaftaran(assessmentData);
+      }
+
+      // Reload assessment history to show the new entry
+      await loadAssessmentHistory();
+
+      // Notify parent component
+      if (onAssessmentSaved) {
+        onAssessmentSaved();
+      }
+
+      alert("Pendaftaran dan Assessment berhasil disimpan!");
+    } catch (error) {
+      console.error("Error saving pendaftaran and assessment:", error);
+      alert(
+        `Gagal menyimpan pendaftaran dan assessment: ${
           error instanceof Error ? error.message : "Unknown error"
         }`
       );
@@ -988,7 +1047,9 @@ const Assessment: React.FC<AssessmentProps> = ({ patient }) => {
           <RotateCcw className="w-4 h-4" />
           <span>Reset</span>
         </button>
-        <button
+
+        {/* Tombol Simpan Assessment */}
+        {/* <button
           onClick={handleSaveAssessment}
           disabled={saving}
           className={`px-4 py-2 ${
@@ -998,8 +1059,24 @@ const Assessment: React.FC<AssessmentProps> = ({ patient }) => {
           } text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center space-x-2`}
         >
           <Save className="w-4 h-4" />
-          <span>{saving ? "Menyimpan..." : "Simpan"}</span>
-        </button>
+          <span>{saving ? "Menyimpan..." : "Simpan Assessment"}</span>
+        </button> */}
+
+        {/* Tombol Simpan Pendaftaran - hanya tampil jika onSavePendaftaran ada */}
+        {onSavePendaftaran && registrationFormData && (
+          <button
+            onClick={handleSavePendaftaran}
+            disabled={saving}
+            className={`px-4 py-2 ${
+              saving
+                ? "bg-green-400 cursor-not-allowed"
+                : "bg-green-600 hover:bg-green-700"
+            } text-white rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 flex items-center space-x-2`}
+          >
+            <Save className="w-4 h-4" />
+            <span>{saving ? "Menyimpan..." : "Simpan Pendaftaran"}</span>
+          </button>
+        )}
       </div>
 
       {/* Modal ICD 10 */}

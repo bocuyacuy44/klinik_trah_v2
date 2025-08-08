@@ -863,18 +863,54 @@ app.delete("/jadwal-kontrol/:id", async (req, res) => {
 // Create ICD tables
 app.get("/create-icd-tables", async (req, res) => {
   try {
-    // Read SQL file
-    const fs = require("fs");
-    const path = require("path");
-    const sqlFile = path.join(__dirname, "create_icd_tables.sql");
-    const sql = fs.readFileSync(sqlFile, "utf8");
+    // Check if tables already exist and have data
+    const icd10Check = await pool.query(`
+      SELECT COUNT(*) as count FROM information_schema.tables 
+      WHERE table_name = 'icd10_dental'
+    `);
 
-    // Execute SQL
-    await pool.query(sql);
+    const icd9Check = await pool.query(`
+      SELECT COUNT(*) as count FROM information_schema.tables 
+      WHERE table_name = 'icd9_dental'
+    `);
 
-    res.json({
-      message: "Tabel ICD dental berhasil dibuat dan data berhasil diisi",
-    });
+    // If tables exist, check if they have data
+    let hasICD10Data = false;
+    let hasICD9Data = false;
+
+    if (parseInt(icd10Check.rows[0].count) > 0) {
+      const dataCheck = await pool.query(
+        "SELECT COUNT(*) as count FROM icd10_dental"
+      );
+      hasICD10Data = parseInt(dataCheck.rows[0].count) > 0;
+    }
+
+    if (parseInt(icd9Check.rows[0].count) > 0) {
+      const dataCheck = await pool.query(
+        "SELECT COUNT(*) as count FROM icd9_dental"
+      );
+      hasICD9Data = parseInt(dataCheck.rows[0].count) > 0;
+    }
+
+    // Only execute SQL if tables don't exist or don't have data
+    if (!hasICD10Data || !hasICD9Data) {
+      // Read SQL file
+      const fs = require("fs");
+      const path = require("path");
+      const sqlFile = path.join(__dirname, "create_icd_tables.sql");
+      const sql = fs.readFileSync(sqlFile, "utf8");
+
+      // Execute SQL
+      await pool.query(sql);
+
+      res.json({
+        message: "Tabel ICD dental berhasil dibuat dan data berhasil diisi",
+      });
+    } else {
+      res.json({
+        message: "Tabel ICD dental sudah ada dan memiliki data",
+      });
+    }
   } catch (error) {
     console.error("Error creating ICD tables:", error);
     res.status(500).json({

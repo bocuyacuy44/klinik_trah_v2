@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS icd9_dental (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Insert Real ICD10 Dental Procedures Data
+-- Insert Real ICD10 Dental Procedures Data (with conflict handling)
 INSERT INTO icd10_dental (kode, nama) VALUES
 -- Prosedur Bedah Minor
 ('K00.1', 'Pencabutan gigi sulung'),
@@ -106,9 +106,10 @@ INSERT INTO icd10_dental (kode, nama) VALUES
 ('K09.2', 'Fluoride varnish aplikasi'),
 ('K09.3', 'Behavior management'),
 ('K09.4', 'Sedasi'),
-('K09.5', 'General anesthesia prosedur gigi anak');
+('K09.5', 'General anesthesia prosedur gigi anak')
+ON CONFLICT (kode) DO NOTHING;
 
--- Insert Real ICD9 Dental Procedures Data
+-- Insert Real ICD9 Dental Procedures Data (with conflict handling)
 INSERT INTO icd9_dental (kode, nama) VALUES
 -- Pencabutan Gigi
 ('23.01', 'Pencabutan gigi sulung'),
@@ -200,7 +201,8 @@ INSERT INTO icd9_dental (kode, nama) VALUES
 ('26.6', 'Guided tissue regeneration'),
 ('26.7', 'Socket preservation'),
 ('26.8', 'Immediate implant placement'),
-('26.9', 'All-on-4 implant procedure');
+('26.9', 'All-on-4 implant procedure')
+ON CONFLICT (kode) DO NOTHING;
 
 -- Create indexes for better search performance
 CREATE INDEX IF NOT EXISTS idx_icd10_dental_kode ON icd10_dental(kode);

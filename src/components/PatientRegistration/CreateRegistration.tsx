@@ -244,59 +244,43 @@ const CreateRegistration: React.FC<CreateRegistrationProps> = ({
     return "-";
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
+  const handleSavePendaftaranWithAssessment = async (assessmentData: any) => {
     if (!formData.ruangan || !formData.dokter) {
-      onShowNotification?.(
-        "error",
-        "Mohon lengkapi semua field yang wajib diisi"
-      );
-      return;
+      throw new Error("Mohon lengkapi semua field yang wajib diisi untuk pendaftaran");
     }
 
+    // Simpan registrasi dulu
+    await registrationService.createRegistration(
+      patient.id,
+      formData.ruangan,
+      formData.dokter,
+      formData.namaPengantar,
+      formData.teleponPengantar
+    );
+
+    // Simpan assessment
+    await assessmentService.createAssessment(assessmentData);
+
+    onShowNotification?.("success", "Pendaftaran dan assessment berhasil disimpan");
+
+    // Reload data
     try {
-      setLoading(true);
-      await registrationService.createRegistration(
-        patient.id,
-        formData.ruangan,
-        formData.dokter,
-        formData.namaPengantar,
-        formData.teleponPengantar
-      );
-      onShowNotification?.("success", "Pendaftaran pasien berhasil disimpan");
+      const historyData = await registrationService.getRegistrationsByPatientId(patient.id);
+      setPatientHistory(historyData);
 
-      // Reload riwayat pasien setelah pendaftaran berhasil
-      try {
-        const historyData =
-          await registrationService.getRegistrationsByPatientId(patient.id);
-        setPatientHistory(historyData);
-
-        // Reload assessment data juga
-        const assessmentData = await assessmentService.getAssessmentHistory(
-          patient.id
-        );
-        setPatientAssessments(assessmentData);
-      } catch (error) {
-        console.error("Error reloading patient history:", error);
-      }
-
-      // Reset form ke default values (opsional)
-      setFormData({
-        ruangan: "poli-klinik-gigi",
-        dokter: "drg-fahrul",
-        namaPengantar: patient.namaLengkap,
-        teleponPengantar: patient.telepon,
-      });
-
-      // Jangan panggil onRegistrationComplete() agar tidak pindah halaman
-      // onRegistrationComplete();
+      const assessmentData = await assessmentService.getAssessmentHistory(patient.id);
+      setPatientAssessments(assessmentData);
     } catch (error) {
-      console.error("Error creating registration:", error);
-      onShowNotification?.("error", "Gagal menyimpan pendaftaran pasien");
-    } finally {
-      setLoading(false);
+      console.error("Error reloading data:", error);
     }
+
+    // Reset form ke default values
+    setFormData({
+      ruangan: "poli-klinik-gigi",
+      dokter: "drg-fahrul",
+      namaPengantar: patient.namaLengkap,
+      teleponPengantar: patient.telepon,
+    });
   };
 
   const handleCancel = () => {
@@ -1295,7 +1279,13 @@ const CreateRegistration: React.FC<CreateRegistrationProps> = ({
   const renderTabContent = () => {
     switch (activeTab) {
       case "assessment":
-        return <Assessment patient={patient} />;
+        return (
+          <Assessment 
+            patient={patient} 
+            onSavePendaftaran={handleSavePendaftaranWithAssessment}
+            registrationFormData={formData}
+          />
+        );
       case "image":
         return <ImageTabContent />;
       case "lembarPersetujuan":
@@ -1390,136 +1380,139 @@ const CreateRegistration: React.FC<CreateRegistrationProps> = ({
       </h1>
 
       {/* Form hanya untuk pendaftaran pasien */}
-      <form onSubmit={handleSubmit}>
-        {/* Bagian Data Pribadi Pasien */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
-          <div className="p-6 border-b border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900">
-              Data Pribadi Pasien
-            </h3>
-          </div>
-          <div className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {/* Tanggal Daftar & Jam */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Tanggal Daftar & Jam
-                </label>
-                <div className="space-y-1">
-                  <p className="text-sm text-gray-900 bg-gray-100 px-3 py-2 rounded-lg cursor-not-allowed">
-                    {currentDate}
-                  </p>
-                  <p className="text-sm text-gray-900 bg-gray-100 px-3 py-2 rounded-lg cursor-not-allowed">
-                    {currentTime}
-                  </p>
-                </div>
-              </div>
-
-              {/* Rekam Medis */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Rekam Medis
-                </label>
-                <p className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-lg">
-                  {patient.rekamMedik}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
+        <div className="p-6 border-b border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-900">
+            Data Pribadi Pasien
+          </h3>
+        </div>
+        <div className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* Tanggal Daftar & Jam */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Tanggal Daftar & Jam
+              </label>
+              <div className="space-y-1">
+                <p className="text-sm text-gray-900 bg-gray-100 px-3 py-2 rounded-lg cursor-not-allowed">
+                  {currentDate}
                 </p>
-              </div>
-
-              {/* Nama Pasien */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Nama Pasien
-                </label>
-                <p className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-lg">
-                  {patient.namaLengkap}
+                <p className="text-sm text-gray-900 bg-gray-100 px-3 py-2 rounded-lg cursor-not-allowed">
+                  {currentTime}
                 </p>
-              </div>
-
-              {/* Tanggal Lahir */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Tanggal Lahir
-                </label>
-                <p className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-lg">
-                  {new Date(patient.tanggalLahir).toLocaleDateString("id-ID", {
-                    weekday: "long",
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                  })}
-                </p>
-              </div>
-
-              {/* Inputan Dokter */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Dokter <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={formData.dokter}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, dokter: e.target.value }))
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  required
-                >
-                  <option value="">Pilih Dokter</option>
-                  {dokterOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Inputan Poliklinik */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Poliklinik <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={formData.ruangan}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      ruangan: e.target.value,
-                    }))
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  required
-                >
-                  <option value="">Pilih Poliklinik</option>
-                  {poliklinikOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
               </div>
             </div>
 
-            {/* Action Buttons untuk Pendaftaran Pasien */}
-            <div className="mt-6 pt-4 border-t border-gray-200">
-              <div className="flex justify-end space-x-4">
-                <button
-                  type="button"
-                  onClick={handleCancel}
-                  className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="px-6 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors disabled:opacity-50"
-                >
-                  {loading ? "Menyimpan..." : "Simpan Pendaftaran"}
-                </button>
+            {/* Rekam Medis */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Rekam Medis
+              </label>
+              <p className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-lg">
+                {patient.rekamMedik}
+              </p>
+            </div>
+
+            {/* Nama Pasien */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Nama Pasien
+              </label>
+              <p className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-lg">
+                {patient.namaLengkap}
+              </p>
+            </div>
+
+            {/* Tanggal Lahir */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Tanggal Lahir
+              </label>
+              <p className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-lg">
+                {new Date(patient.tanggalLahir).toLocaleDateString("id-ID", {
+                  weekday: "long",
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                })}
+              </p>
+            </div>
+
+            {/* Inputan Dokter */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Dokter <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={formData.dokter}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, dokter: e.target.value }))
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                required
+              >
+                <option value="">Pilih Dokter</option>
+                {dokterOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Inputan Poliklinik */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Poliklinik <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={formData.ruangan}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    ruangan: e.target.value,
+                  }))
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                required
+              >
+                <option value="">Pilih Poliklinik</option>
+                {poliklinikOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Information Note */}
+          <div className="mt-6 pt-4 border-t border-gray-200">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <svg
+                    className="w-5 h-5 text-blue-400"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm text-blue-800">
+                    <strong>Informasi:</strong> Untuk menyimpan pendaftaran, silakan isi form Assessment terlebih dahulu, kemudian klik tombol "Simpan Pendaftaran" pada tab Assessment.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </form>
+      </div>
 
       {/* Bagian Tabel Riwayat Pasien - di luar form */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
