@@ -372,7 +372,6 @@ const Assessment: React.FC<AssessmentProps> = ({
         onAssessmentSaved();
       }
 
-      alert("Pendaftaran dan Assessment berhasil disimpan!");
     } catch (error) {
       console.error("Error saving pendaftaran and assessment:", error);
       alert(
