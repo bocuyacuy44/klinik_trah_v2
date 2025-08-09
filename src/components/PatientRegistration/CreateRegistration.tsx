@@ -142,15 +142,28 @@ const CreateRegistration: React.FC<CreateRegistrationProps> = ({
   // Fungsi untuk mendapatkan tanggal dan jam saat ini atau dari registrasi yang dipilih
   const getCurrentDateTime = () => {
     if (isEditMode && selectedRegistration) {
-      // Jika mode edit, ambil tanggal dan jam dari registrasi yang dipilih
-      const registrationDate = new Date(selectedRegistration.tanggal);
-      const date = registrationDate.toLocaleDateString("id-ID", {
+      // Jika mode edit, gunakan tanggal dari field 'tanggal' (YYYY-MM-DD)
+      // dan waktu dari 'created_at' (atau 'updated_at' jika ada)
+      const createdAtRaw =
+        selectedRegistration.created_at ||
+        selectedRegistration.updated_at ||
+        null;
+      const dateSource = selectedRegistration.tanggal
+        ? new Date(selectedRegistration.tanggal)
+        : createdAtRaw
+        ? new Date(createdAtRaw.replace(" ", "T"))
+        : new Date();
+      const timeSource = createdAtRaw
+        ? new Date(createdAtRaw.replace(" ", "T"))
+        : dateSource;
+
+      const date = dateSource.toLocaleDateString("id-ID", {
         weekday: "long",
         year: "numeric",
         month: "long",
         day: "numeric",
       });
-      const time = registrationDate.toLocaleTimeString("id-ID", {
+      const time = timeSource.toLocaleTimeString("id-ID", {
         hour: "2-digit",
         minute: "2-digit",
       });
@@ -480,7 +493,8 @@ const CreateRegistration: React.FC<CreateRegistrationProps> = ({
   ];
 
   // Fungsi untuk membuka image dalam full screen
-  const handleImageClick = (imageUrl: string, title: string) => {
+  const handleImageClick = (imageUrl: string | undefined, title: string) => {
+    if (!imageUrl) return;
     setSelectedImage(imageUrl);
     setSelectedImageTitle(title);
     setShowImageModal(true);
@@ -615,7 +629,9 @@ const CreateRegistration: React.FC<CreateRegistrationProps> = ({
                 <div
                   key={index}
                   className="group relative bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-200 cursor-pointer"
-                  onClick={() => handleImageClick(image.url, image.title)}
+                  onClick={() =>
+                    image.url && handleImageClick(image.url, image.title)
+                  }
                 >
                   {/* Image Container */}
                   <div className="aspect-square relative">
@@ -741,6 +757,7 @@ const CreateRegistration: React.FC<CreateRegistrationProps> = ({
             <div
               className="group relative bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-200 cursor-pointer max-w-lg"
               onClick={() =>
+                patient.informedConsent &&
                 handleImageClick(patient.informedConsent, "Informed Consent")
               }
             >

@@ -1,19 +1,6 @@
-const API_BASE_URL = "http://localhost:3001";
+import { Registration } from "../types";
 
-interface Registration {
-  id: string;
-  idPendaftaran: string;
-  noAntrian: number;
-  tanggal: string;
-  patientId: string;
-  status: string;
-  ruangan?: string;
-  dokter?: string;
-  namaPengantar?: string;
-  teleponPengantar?: string;
-  noRekamMedik?: string;
-  pasien?: string;
-}
+const API_BASE_URL = "http://localhost:3001";
 
 const convertToRegistration = (data: any): Registration => ({
   id: data.id,
@@ -28,6 +15,8 @@ const convertToRegistration = (data: any): Registration => ({
   teleponPengantar: data.telepon_pengantar,
   noRekamMedik: data.no_rekam_medik,
   pasien: data.pasien,
+  created_at: data.created_at,
+  updated_at: data.updated_at,
 });
 
 export const registrationService = {
