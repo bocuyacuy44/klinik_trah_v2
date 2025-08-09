@@ -114,6 +114,7 @@ function App() {
 
   const handleNavigateToCreateRegistration = (patient: Patient) => {
     setSelectedPatient(patient);
+    setSelectedRegistration(null); // Reset registrasi yang dipilih untuk mode create
     setCurrentView("create-registration");
     setActiveMenu("pendaftaran-pasien");
   };
@@ -124,7 +125,7 @@ function App() {
   ) => {
     setSelectedPatient(patient);
     setSelectedRegistration(registration);
-    setCurrentView("edit-registration");
+    setCurrentView("create-registration");
     setActiveMenu("pendaftaran-pasien");
   };
 
@@ -232,6 +233,8 @@ function App() {
         return selectedPatient ? (
           <CreateRegistration
             patient={selectedPatient}
+            selectedRegistration={selectedRegistration} // Tambahan prop untuk mode edit
+            isEditMode={selectedRegistration !== null} // Prop eksplisit untuk mode edit
             onNavigateToDashboard={handleNavigateToDashboard}
             onNavigateToRegistration={() =>
               setCurrentView("pendaftaran-pasien")

@@ -64,6 +64,8 @@ export interface Registration {
   teleponPengantar?: string;
   noRekamMedik?: string;
   pasien?: string;
+  created_at?: string; // Tambahkan field created_at
+  updated_at?: string; // Tambahkan field updated_at
 }
 
 export interface User {

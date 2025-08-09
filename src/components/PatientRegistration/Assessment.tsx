@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Search, Plus, Save, RotateCcw, DollarSign } from "lucide-react";
-import { Patient } from "../../types";
+import { Patient, Registration } from "../../types";
 import { assessmentService } from "../../services/assessmentService";
 
 interface AssessmentProps {
@@ -13,6 +13,7 @@ interface AssessmentProps {
     teleponPengantar: string;
   };
   onAssessmentSaved?: () => void; // Callback untuk notify parent bahwa assessment sudah disimpan
+  selectedRegistration?: Registration | null; // Tambahan prop untuk filter data
 }
 
 interface AssessmentHistory {
@@ -20,6 +21,7 @@ interface AssessmentHistory {
   waktu: string;
   dokter: string;
   assessment: string;
+  created_at?: string; // Tambahkan property created_at sebagai optional
 }
 
 interface ICD10Item {
@@ -50,6 +52,7 @@ const Assessment: React.FC<AssessmentProps> = ({
   onSavePendaftaran,
   registrationFormData,
   onAssessmentSaved,
+  selectedRegistration, // Tambahan prop untuk filter
 }) => {
   // Utility function untuk format angka dengan pemisah ribuan
   const formatNumber = (num: number | string): string => {
@@ -145,7 +148,7 @@ const Assessment: React.FC<AssessmentProps> = ({
   useEffect(() => {
     loadAssessmentHistory();
     loadICDData();
-  }, [patient.id]);
+  }, [patient.id, selectedRegistration]); // Tambahkan selectedRegistration sebagai dependency
 
   // Load ICD data from database
   const loadICDData = async () => {
@@ -180,8 +183,31 @@ const Assessment: React.FC<AssessmentProps> = ({
       await assessmentService.createAssessmentTable();
       const history = await assessmentService.getAssessmentHistory(patient.id);
 
+      // Filter data berdasarkan tanggal registrasi yang dipilih jika dalam mode edit
+      let filteredHistory = history;
+      if (selectedRegistration) {
+        const registrationDate = new Date(selectedRegistration.tanggal);
+        const registrationDateOnly = new Date(
+          registrationDate.getFullYear(),
+          registrationDate.getMonth(),
+          registrationDate.getDate()
+        );
+
+        filteredHistory = history.filter((assessment) => {
+          const assessmentDate = new Date(assessment.waktu || assessment.created_at);
+          const assessmentDateOnly = new Date(
+            assessmentDate.getFullYear(),
+            assessmentDate.getMonth(),
+            assessmentDate.getDate()
+          );
+
+          // Filter assessment yang tanggalnya sama dengan tanggal registrasi yang dipilih
+          return assessmentDateOnly.getTime() === registrationDateOnly.getTime();
+        });
+      }
+
       // Format data for display
-      const formattedHistory = history.map((item) => ({
+      const formattedHistory = filteredHistory.map((item) => ({
         id: item.id,
         waktu: new Date(item.waktu).toLocaleString("id-ID"),
         dokter: item.dokter,

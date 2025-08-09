@@ -4,6 +4,7 @@ import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import { Patient } from "../../types";
+import { Registration } from "../../types";
 import Breadcrumb from "../Layout/Breadcrumb";
 import Assessment from "./Assessment";
 import { registrationService } from "../../services/registrationService";
@@ -27,6 +28,8 @@ moment.locale("id", {
 
 interface CreateRegistrationProps {
   patient: Patient;
+  selectedRegistration?: Registration | null; // Tambahan prop untuk mode edit
+  isEditMode?: boolean; // Prop eksplisit untuk mode edit
   onNavigateToDashboard: () => void;
   onNavigateToRegistration: () => void;
   onNavigateToSelectPatient: () => void;
@@ -36,6 +39,8 @@ interface CreateRegistrationProps {
 
 const CreateRegistration: React.FC<CreateRegistrationProps> = ({
   patient,
+  selectedRegistration, // Tambahan prop untuk mode edit
+  isEditMode = false, // Prop eksplisit untuk mode edit dengan default false
   onNavigateToDashboard,
   onNavigateToRegistration,
   onNavigateToSelectPatient,
@@ -48,6 +53,20 @@ const CreateRegistration: React.FC<CreateRegistrationProps> = ({
     namaPengantar: patient.namaLengkap,
     teleponPengantar: patient.telepon,
   });
+
+  // useEffect untuk mengisi form data berdasarkan registrasi yang dipilih saat mode edit
+  useEffect(() => {
+    if (isEditMode && selectedRegistration) {
+      setFormData({
+        ruangan: selectedRegistration.ruangan || "poli-klinik-gigi",
+        dokter: selectedRegistration.dokter || "drg-fahrul",
+        namaPengantar:
+          selectedRegistration.namaPengantar || patient.namaLengkap,
+        teleponPengantar:
+          selectedRegistration.teleponPengantar || patient.telepon,
+      });
+    }
+  }, [isEditMode, selectedRegistration, patient]);
 
   const [loading, setLoading] = useState(false);
   const [jadwalLoading, setJadwalLoading] = useState(false);
@@ -108,6 +127,9 @@ const CreateRegistration: React.FC<CreateRegistrationProps> = ({
   const [patientHistory, setPatientHistory] = useState<any[]>([]);
   const [patientAssessments, setPatientAssessments] = useState<any[]>([]);
 
+  // Mode edit ditentukan dari prop isEditMode
+  // const isEditMode = selectedRegistration !== null && selectedRegistration !== undefined;
+
   // Mock data untuk dropdown
   const dokterOptions = [
     { value: "drg-fahrul", label: "drg. Moehammad Fahrul Rozi, Sp.Ort" },
@@ -117,20 +139,37 @@ const CreateRegistration: React.FC<CreateRegistrationProps> = ({
     { value: "poli-klinik-gigi", label: "Poli Klinik Gigi" },
   ];
 
-  // Fungsi untuk mendapatkan tanggal dan jam saat ini
+  // Fungsi untuk mendapatkan tanggal dan jam saat ini atau dari registrasi yang dipilih
   const getCurrentDateTime = () => {
-    const now = new Date();
-    const date = now.toLocaleDateString("id-ID", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-    const time = now.toLocaleTimeString("id-ID", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-    return { date, time };
+    if (isEditMode && selectedRegistration) {
+      // Jika mode edit, ambil tanggal dan jam dari registrasi yang dipilih
+      const registrationDate = new Date(selectedRegistration.tanggal);
+      const date = registrationDate.toLocaleDateString("id-ID", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+      const time = registrationDate.toLocaleTimeString("id-ID", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+      return { date, time };
+    } else {
+      // Jika mode create, gunakan tanggal dan jam saat ini
+      const now = new Date();
+      const date = now.toLocaleDateString("id-ID", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+      const time = now.toLocaleTimeString("id-ID", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+      return { date, time };
+    }
   };
 
   const { date: currentDate, time: currentTime } = getCurrentDateTime();
@@ -163,7 +202,18 @@ const CreateRegistration: React.FC<CreateRegistrationProps> = ({
         const historyData =
           await registrationService.getRegistrationsByPatientId(patient.id);
         console.log("Loaded history data:", historyData);
-        setPatientHistory(historyData);
+
+        // Filter data jika dalam mode edit
+        if (isEditMode && selectedRegistration) {
+          // Hanya tampilkan data registrasi yang dipilih
+          const filteredHistory = historyData.filter(
+            (history: any) => history.id === selectedRegistration.id
+          );
+          setPatientHistory(filteredHistory);
+        } else {
+          // Tampilkan semua data jika bukan mode edit
+          setPatientHistory(historyData);
+        }
       } catch (error) {
         console.error("Error loading patient history:", error);
       }
@@ -186,7 +236,7 @@ const CreateRegistration: React.FC<CreateRegistrationProps> = ({
 
     loadPatientHistory();
     loadPatientAssessments();
-  }, [patient.id]);
+  }, [patient.id, isEditMode, selectedRegistration]);
 
   // Fungsi untuk mendapatkan diagnosa berdasarkan tanggal registrasi
   const getDiagnosisForDate = (registrationDate: string) => {
@@ -305,9 +355,7 @@ const CreateRegistration: React.FC<CreateRegistrationProps> = ({
 
         if (Array.isArray(icd10Data) && icd10Data.length > 0) {
           // Gabungkan semua diagnosa dengan format: "Kode - Nama"
-          return icd10Data
-            .map((item) => `${item.nama}`)
-            .join(", ");
+          return icd10Data.map((item) => `${item.nama}`).join(", ");
         }
       } catch (error) {
         console.error("Error parsing ICD10 data:", error);
@@ -1249,6 +1297,7 @@ const CreateRegistration: React.FC<CreateRegistrationProps> = ({
             patient={patient}
             onSavePendaftaran={handleSavePendaftaranWithAssessment}
             registrationFormData={formData}
+            selectedRegistration={selectedRegistration} // Tambahan prop untuk filter
           />
         );
       case "image":
@@ -1336,12 +1385,17 @@ const CreateRegistration: React.FC<CreateRegistrationProps> = ({
           { label: "Dashboard", onClick: onNavigateToDashboard },
           { label: "Pendaftaran Pasien", onClick: onNavigateToRegistration },
           { label: "Pilih Pasien", onClick: onNavigateToSelectPatient },
-          { label: "Buat Pendaftaran Pasien", active: true },
+          {
+            label: isEditMode
+              ? "Edit Pendaftaran Pasien"
+              : "Buat Pendaftaran Pasien",
+            active: true,
+          },
         ]}
       />
 
       <h1 className="text-2xl font-bold text-gray-900 mb-6">
-        Pendaftaran Pasien
+        {isEditMode ? "Edit Pendaftaran Pasien" : "Pendaftaran Pasien"}
       </h1>
 
       {/* Form hanya untuk pendaftaran pasien */}

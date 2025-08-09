@@ -6,6 +6,7 @@ interface AssessmentHistory {
   dokter: string;
   assessment: string;
   waktu: string;
+  created_at: string; // Tambahan untuk kompatibilitas
 }
 
 interface AssessmentDetails {
